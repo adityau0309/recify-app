@@ -1,0 +1,17 @@
+payment_id,customer_name,invoice_ref,amount,paid_date,method
+PMT-9001,Al Barsha Gardens Contracting,KIN-5033,96400.0,2026-06-03,Wire
+PMT-9002,Desert Rose Construction,KIN-5034,157100.0,2026-08-20,ACH
+PMT-9003,Zenith MEP Contracting,KIN-5035,145700.0,2026-07-16,ACH
+PMT-9004,Falcon Gulf Builders,KIN-5036,78500.0,2026-06-23,Wire
+PMT-9005,Marina Bay Contracting,KIN-5037,102300.0,2026-06-29,Cheque
+PMT-9006,Al Noor Contracting LLC,KIN-5038,127200.0,2026-08-25,ACH
+PMT-9007,Crescent Gulf MEP,KIN-5039,138900.0,2026-06-05,Wire
+PMT-9008,Al Fahad Trading & Contracting,KIN-5040,33400.0,2026-07-18,Cheque
+PMT-9009,Zenith MEP Contracting,KIN-5041,89900.0,2026-06-08,ACH
+PMT-9010,Desert Rose Construction,KIN-5024,62000.0,2026-09-13,ACH
+PMT-9011,Emirates Frame Works,KIN-5015,105100.0,2026-09-17,Cheque
+PMT-9012,Falcon Gulf Builders,KIN-5020,148700.0,2026-09-16,Wire
+PMT-9013,Crescent Gulf MEP,KIN-5005,101000.0,2026-09-16,ACH
+PMT-9014,Crescent Gulf MEP,KIN-5005,101000.0,2026-09-18,ACH
+PMT-9015,Al Fahad Trading & Contracting,KIN-5908,35200.0,2026-09-09,ACH
+PMT-9016,Al Maha Infrastructure,KIN-5016,192600.0,2026-09-07,Wire

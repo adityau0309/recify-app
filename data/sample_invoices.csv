@@ -1,0 +1,42 @@
+invoice_id,customer_name,amount,issued_date,due_date,status
+KIN-5001,Meridian Gulf Projects,20100.0,2026-09-15,2026-10-15,disputed
+KIN-5002,Al Rawabi Engineering,166000.0,2026-08-29,2026-09-28,disputed
+KIN-5003,Al Qudra Developments,21500.0,2026-09-27,2026-10-27,disputed
+KIN-5004,Al Barsha Gardens Contracting,138400.0,2026-08-28,2026-09-27,disputed
+KIN-5005,Crescent Gulf MEP,101000.0,2026-09-04,2026-10-04,open
+KIN-5006,Al Noor Contracting LLC,170600.0,2026-09-22,2026-10-22,open
+KIN-5007,Al Fahad Trading & Contracting,72000.0,2026-09-19,2026-10-19,open
+KIN-5008,Al Fahad Trading & Contracting,36000.0,2026-08-05,2026-09-04,open
+KIN-5009,Meridian Gulf Projects,88600.0,2026-08-06,2026-09-05,open
+KIN-5010,Skyline Gulf Construction,180500.0,2026-07-25,2026-08-24,open
+KIN-5011,Marina Bay Contracting,124900.0,2026-07-19,2026-08-18,open
+KIN-5012,Gulf Crest Builders,31200.0,2026-08-08,2026-09-07,open
+KIN-5013,Blue Horizon Facilities,133400.0,2026-07-26,2026-08-25,open
+KIN-5014,Falcon Gulf Builders,24400.0,2026-08-10,2026-09-09,open
+KIN-5015,Emirates Frame Works,217000.0,2026-07-21,2026-08-20,open
+KIN-5016,Al Maha Infrastructure,192600.0,2026-07-06,2026-08-05,open
+KIN-5017,Skyline Gulf Construction,107900.0,2026-06-22,2026-07-22,open
+KIN-5018,Blue Horizon Facilities,48300.0,2026-07-07,2026-08-06,open
+KIN-5019,Palm Coast Developers,152400.0,2026-06-26,2026-07-26,open
+KIN-5020,Falcon Gulf Builders,139900.0,2026-07-13,2026-08-12,open
+KIN-5021,Crescent Gulf MEP,164500.0,2026-07-13,2026-08-12,open
+KIN-5022,Marina Bay Contracting,92800.0,2026-05-20,2026-06-19,open
+KIN-5023,Crescent Gulf MEP,60000.0,2026-06-08,2026-07-08,open
+KIN-5024,Desert Rose Construction,62000.0,2026-06-17,2026-07-17,open
+KIN-5025,Al Fahad Trading & Contracting,97200.0,2026-06-16,2026-07-16,open
+KIN-5026,Palm Coast Developers,202200.0,2026-05-31,2026-06-30,open
+KIN-5027,Al Fahad Trading & Contracting,58600.0,2026-03-17,2026-04-16,open
+KIN-5028,Gulf Crest Builders,196400.0,2026-02-26,2026-03-28,open
+KIN-5029,Marina Bay Contracting,44300.0,2026-05-02,2026-06-01,open
+KIN-5030,Al Maha Infrastructure,167700.0,2026-03-12,2026-04-11,open
+KIN-5031,Skyline Gulf Construction,168100.0,2026-03-26,2026-04-25,open
+KIN-5032,Gulf Crest Builders,89200.0,2026-05-02,2026-06-01,open
+KIN-5033,Al Barsha Gardens Contracting,96400.0,2026-05-09,2026-06-08,paid
+KIN-5034,Desert Rose Construction,157100.0,2026-07-25,2026-08-24,paid
+KIN-5035,Zenith MEP Contracting,145700.0,2026-06-20,2026-07-20,paid
+KIN-5036,Falcon Gulf Builders,78500.0,2026-05-29,2026-06-28,paid
+KIN-5037,Marina Bay Contracting,102300.0,2026-06-04,2026-07-04,paid
+KIN-5038,Al Noor Contracting LLC,127200.0,2026-07-30,2026-08-29,paid
+KIN-5039,Crescent Gulf MEP,138900.0,2026-05-07,2026-06-06,paid
+KIN-5040,Al Fahad Trading & Contracting,33400.0,2026-06-19,2026-07-19,paid
+KIN-5041,Zenith MEP Contracting,89900.0,2026-05-13,2026-06-12,paid
