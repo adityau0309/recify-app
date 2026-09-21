@@ -469,7 +469,7 @@ let DATA = null;
 let SETTINGS = null;
 
 async function loadData(){
-  const [overview, aging, reconciliation, cashflow, customers, invoices, settingsResp] = await Promise.all([
+  const [overview, aging, reconciliation, cashflow, customers, invoices, settingsResp, ledgerHealth, ledgerExceptions, retention, ipcVariance, pdc, backtest, daysToPay, erpStatus] = await Promise.all([
     fetch('/api/overview').then(r=>r.json()),
     fetch('/api/aging').then(r=>r.json()),
     fetch('/api/reconciliation').then(r=>r.json()),
@@ -477,8 +477,16 @@ async function loadData(){
     fetch('/api/customers/scores').then(r=>r.json()),
     fetch('/api/invoices').then(r=>r.json()),
     fetch('/api/settings').then(r=>r.json()),
+    fetch('/api/ledger/health').then(r=>r.json()),
+    fetch('/api/ledger/exceptions').then(r=>r.json()),
+    fetch('/api/retention').then(r=>r.json()),
+    fetch('/api/ipc-variance').then(r=>r.json()),
+    fetch('/api/pdc').then(r=>r.json()),
+    fetch('/api/backtest').then(r=>r.json()),
+    fetch('/api/days-to-pay').then(r=>r.json()),
+    fetch('/api/erp/status').then(r=>r.json()).catch(()=>({adapter:'netsuite',configured:false,verified:false,note:'Status unavailable.'})),
   ]);
-  DATA = { overview, aging, reconciliation, cashflow, customers, invoices };
+  DATA = { overview, aging, reconciliation, cashflow, customers, invoices, ledgerHealth, ledgerExceptions, retention, ipcVariance, pdc, backtest, daysToPay, erpStatus };
   SETTINGS = settingsResp.settings;
 }
 
@@ -643,7 +651,7 @@ function reconciliationPage(){
     else if(p.match_status==='overpaid') note = `${money(p.diff)} over the invoiced amount — credit or refund`;
     else if(p.match_status==='duplicate') note = `${p.invoice.id} was already paid — likely a double-send`;
     else if(p.match_status==='unmatched') note = p.suggestion ? `No invoice "${p.invoice_ref}" — closest open match: ${p.suggestion.id} (${money(p.suggestion.amount)})` : `No matching invoice found for "${p.invoice_ref}"`;
-    else if(p.stale_status) note = `Payment cleared and matches ${p.invoice.id} exactly, but the invoice status in the system still shows "${p.invoice.status}" instead of Paid.`;
+    else if(p.stale_status) note = `Payment cleared and matches ${p.invoice.id} exactly, but the invoice status in the system still showed "${p.invoice.raw_status || p.invoice.status}" — this is now auto-corrected to Paid everywhere else in the app; this row is the audit trail of that correction.`;
     else note = `Cleanly matched to ${p.invoice.id}`;
     return `<tr>
       <td class="num muted">${p.id}</td><td style="font-weight:500;">${p.customer_name||p.customer_id}</td>
@@ -652,6 +660,20 @@ function reconciliationPage(){
       <td class="muted" style="font-size:12.5px;">${note}</td>
     </tr>`;
   }).join('');
+
+  const exc = DATA.ledgerExceptions || {credits:[], unapplied_cash:[], audit_log:[]};
+  const creditsRows = exc.credits.map(c=>`<tr>
+      <td style="font-weight:500;">${esc(c.customer_name||c.customer_id)}</td>
+      <td class="muted">${c.reason==='duplicate_payment'?'Duplicate payment':'Overpayment'}</td>
+      <td class="num" style="font-weight:600;color:${C.purple};">${money(c.amount)}</td>
+      <td class="muted" style="font-size:12px;">${esc(c.detail)}</td>
+    </tr>`).join('') || `<tr><td colspan="4" class="faint" style="padding:14px 10px;">No credits or refunds pending.</td></tr>`;
+
+  const unappliedRows = exc.unapplied_cash.map(p=>`<tr>
+      <td class="num muted">${p.id}</td><td style="font-weight:500;">${esc(p.customer_name||p.customer_id)}</td>
+      <td class="num">${money(p.amount)}</td><td class="muted">${p.paid_date}</td>
+      <td class="muted" style="font-size:12px;">Referenced invoice "${esc(p.invoice_ref||'(blank)')}" not found${p.suggestion?` — closest match: ${p.suggestion.id} (${money(p.suggestion.amount)})`:''}</td>
+    </tr>`).join('') || `<tr><td colspan="5" class="faint" style="padding:14px 10px;">No unapplied cash — every payment matched to an invoice.</td></tr>`;
 
   return `
     <div class="kpi-strip">
@@ -662,7 +684,7 @@ function reconciliationPage(){
     </div>
     ${insightBanner(needsReview>0?'alertTriangle':'checkCircle', 'Reconciliation',
       needsReview===0 ? 'Every payment this period matches an invoice exactly — nothing needs manual review.'
-      : `${needsReview} of ${results.length} payments this period don't cleanly match an invoice — a partial payment, an overpayment, a duplicate, or a reference that isn't in the system. Real money (${money(discrepancyTotal)}) sitting in these rows until someone resolves them.`,
+      : `${needsReview} of ${results.length} payments this period don't cleanly match an invoice — a partial payment, an overpayment, a duplicate, or a reference that isn't in the system. Stale statuses and partial balances are now corrected automatically everywhere else in the app; the ${money(discrepancyTotal)} below is genuinely unresolved money (credits, refunds, and unapplied cash) that still needs a human decision.`,
       needsReview>0?'warn':'info')}
     <div class="card">
       <div class="card-head"><div>
@@ -670,7 +692,164 @@ function reconciliationPage(){
         <div class="card-sub">Every incoming payment matched against invoice amounts automatically — no manual spreadsheet cross-checking.</div>
       </div></div>
       <div class="scrollx"><table class="data"><thead><tr><th>Payment</th><th>Customer</th><th>Amount</th><th>Date</th><th>Match</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </div>
+    <div class="row-2" style="margin-top:18px;">
+      <div class="card">
+        <div class="card-head"><div>
+          <div class="card-title">Credits &amp; refunds due</div>
+          <div class="card-sub">Overpayments and duplicate payments — never silently netted against a different invoice.</div>
+        </div></div>
+        <div class="scrollx"><table class="data"><thead><tr><th>Customer</th><th>Reason</th><th>Amount</th><th>Detail</th></tr></thead><tbody>${creditsRows}</tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div>
+          <div class="card-title">Unapplied cash</div>
+          <div class="card-sub">Payments that couldn't be tied to a real invoice — held here, not guessed onto one.</div>
+        </div></div>
+        <div class="scrollx"><table class="data"><thead><tr><th>Payment</th><th>Customer</th><th>Amount</th><th>Date</th><th>Suggested match</th></tr></thead><tbody>${unappliedRows}</tbody></table></div>
+      </div>
     </div>`;
+}
+
+/* ============================= sample/empty state helper ============================= */
+function sampleOrEmptyState(dataMode, hasRows, featureLabel){
+  if(!hasRows){
+    return `<div class="card" style="text-align:center;padding:44px 24px;">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:${C.textMuted};">${ICON('alertTriangle',18)}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Import ${featureLabel} to enable this</div>
+      <div class="muted" style="font-size:12.5px;max-width:440px;margin:0 auto;line-height:1.6;">No records currently carry this data. These are optional columns in the invoices/payments import template — add them and this section fills in automatically. Nothing here is ever estimated.</div>
+    </div>`;
+  }
+  if(dataMode === 'sample'){
+    return insightBanner('info', 'Sample data', 'This section is showing the bundled sample dataset for demonstration — including a small amount of clearly-synthetic payment history used only to illustrate the forecast-accuracy model. Import your real data (Import Data → Settings) to see your own figures; sample values never mix into live data.', 'info');
+  }
+  return '';
+}
+
+function retentionPage(){
+  const ret = DATA.retention, ipc = DATA.ipcVariance, pdc = DATA.pdc;
+  const hasAny = ret.rows.length || ipc.rows.length || pdc.rows.length;
+  const dataMode = ret.data_mode;
+
+  if(!hasAny){
+    return sampleOrEmptyState(dataMode, false, 'retention, IPC and PDC data');
+  }
+
+  const stateBanner = sampleOrEmptyState(dataMode, true, 'retention, IPC and PDC data');
+  const alertsHtml = [...ret.alerts, ...pdc.alerts]
+    .map(a=>insightBanner(a.level==='risk'?'alertTriangle':'alertTriangle', a.tag, a.text, a.level)).join('');
+
+  const retColor = {held:C.blue, due_soon:C.amber, overdue_for_release:C.red, unscheduled:C.textMuted};
+  const retLabel = {held:'Held', due_soon:'Due soon', overdue_for_release:'Overdue for release', unscheduled:'Unscheduled'};
+  const retRows = ret.rows.length ? ret.rows.map(r=>`<tr>
+      <td class="num muted">${r.invoice_id}</td><td style="font-weight:500;">${esc(r.customer_name)}</td>
+      <td class="muted" style="text-transform:capitalize;">${r.tranche}</td>
+      <td class="num">${money(r.amount)}</td>
+      <td class="muted">${r.release_date || (r.release_rule ? esc(r.release_rule) : '—')}</td>
+      <td><span class="badge" style="color:${retColor[r.status]};background:${retColor[r.status]}22;">${retLabel[r.status]}</span></td>
+    </tr>`).join('') : `<tr><td colspan="6" class="faint" style="padding:14px 10px;">No retention data imported.</td></tr>`;
+
+  const ipcRows = ipc.rows.length ? ipc.rows.map(r=>`<tr>
+      <td class="num muted">${r.invoice_id}</td><td style="font-weight:500;">${esc(r.customer_name)}</td>
+      <td class="num">${money(r.claimed)}</td><td class="num">${money(r.certified)}</td>
+      <td class="num" style="color:${r.variance<0?C.red:r.variance>0?C.green:C.textMuted};font-weight:600;">
+        ${r.variance>0?'+':''}${money(r.variance)} ${r.variance_pct!==null?`(${r.variance_pct>0?'+':''}${r.variance_pct}%)`:''}</td>
+    </tr>`).join('') : `<tr><td colspan="5" class="faint" style="padding:14px 10px;">No IPC data imported.</td></tr>`;
+
+  const pdcColor = {held:C.blue, deposited:C.amber, cleared:C.green, bounced:C.red, replaced:C.textMuted};
+  const pdcRows = pdc.rows.length ? pdc.rows.map(r=>`<tr>
+      <td class="num muted">${r.payment_id}</td><td style="font-weight:500;">${esc(r.customer_name)}</td>
+      <td class="muted">${esc(r.invoice_ref||'—')}</td><td class="num">${money(r.amount)}</td>
+      <td class="muted">${esc(r.cheque_number)} · ${esc(r.bank||'—')}</td>
+      <td class="muted">${r.cheque_date||'—'}</td>
+      <td><span class="badge" style="color:${pdcColor[r.pdc_status]};background:${pdcColor[r.pdc_status]}22;text-transform:capitalize;">${r.pdc_status}</span></td>
+    </tr>`).join('') : `<tr><td colspan="7" class="faint" style="padding:14px 10px;">No post-dated cheques imported.</td></tr>`;
+
+  return `
+    ${stateBanner}
+    ${alertsHtml}
+    <div class="card">
+      <div class="card-head"><div>
+        <div class="card-title">Retention tracking</div>
+        <div class="card-sub">5% handover and 5% DLP retention per invoice — held, approaching release, or overdue for release.</div>
+      </div></div>
+      <div class="scrollx"><table class="data"><thead><tr><th>Invoice</th><th>Customer</th><th>Tranche</th><th>Amount</th><th>Release</th><th>Status</th></tr></thead><tbody>${retRows}</tbody></table></div>
+    </div>
+    <div class="card" style="margin-top:18px;">
+      <div class="card-head"><div>
+        <div class="card-title">IPC vs claimed variance</div>
+        <div class="card-sub">Claimed milestone value vs what was actually certified.</div>
+      </div></div>
+      <div class="scrollx"><table class="data"><thead><tr><th>Invoice</th><th>Customer</th><th>Claimed</th><th>Certified (IPC)</th><th>Variance</th></tr></thead><tbody>${ipcRows}</tbody></table></div>
+    </div>
+    <div class="card" style="margin-top:18px;">
+      <div class="card-head"><div>
+        <div class="card-title">Post-dated cheque tracker</div>
+        <div class="card-sub">Held cheques and bounced cheques do not reduce an invoice's balance until they actually clear.</div>
+      </div></div>
+      <div class="scrollx"><table class="data"><thead><tr><th>Payment</th><th>Customer</th><th>Invoice</th><th>Amount</th><th>Cheque / Bank</th><th>Cheque date</th><th>Status</th></tr></thead><tbody>${pdcRows}</tbody></table></div>
+    </div>`;
+}
+
+function forecastAccuracyPage(){
+  const bt = DATA.backtest;
+  const dtpAll = DATA.daysToPay.customers;
+  const dataMode = bt.data_mode;
+
+  const available = Object.entries(dtpAll).filter(([,m])=>m.available);
+  const unavailable = Object.entries(dtpAll).filter(([,m])=>!m.available && m.count > 0);
+
+  const modelRows = available.map(([cid,m])=>{
+    const cust = DATA.customers.customers.find(c=>c.customer_id===cid);
+    return `<tr>
+      <td style="font-weight:500;">${esc(cust ? cust.name : cid)}</td>
+      <td class="num">${m.count}</td>
+      <td class="num" style="color:${C.green};">${m.low_days}d</td>
+      <td class="num" style="font-weight:600;">${m.expected_days}d</td>
+      <td class="num" style="color:${C.amber};">${m.high_days}d</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" class="faint" style="padding:14px 10px;">No customer yet has enough paid-invoice history for its own model.</td></tr>`;
+
+  const fallbackNote = unavailable.length
+    ? `<div class="modal-note" style="margin-top:10px;">${unavailable.length} customer(s) have some paid history but fewer than ${unavailable[0][1].min_required} invoices with recorded payment dates — these fall back to the score-based forecast method until more history accumulates.</div>`
+    : '';
+
+  const btBlock = bt.available
+    ? `${insightBanner('checkCircle','Backtest result', `Replaying ${bt.predictions_tested} historical predictions against what actually happened: mean absolute error of ${bt.mean_absolute_error_days} day(s). This is a real computed result from real payment history, not an estimate.`, 'info')}
+       <div class="card">
+         <div class="card-head"><div><div class="card-title">Prediction vs actual (sample of tested invoices)</div></div></div>
+         <div class="scrollx"><table class="data"><thead><tr><th>Customer</th><th>Invoice</th><th>Predicted</th><th>Actual</th><th>Error</th></tr></thead><tbody>
+           ${bt.predictions.slice(0,15).map(p=>{
+             const cust = DATA.customers.customers.find(c=>c.customer_id===p.customer_id);
+             return `<tr><td style="font-weight:500;">${esc(cust?cust.name:p.customer_id)}</td><td class="num muted">${p.invoice_id}</td>
+               <td class="num">${p.predicted_days}d</td><td class="num">${p.actual_days}d</td>
+               <td class="num" style="color:${p.error_days>10?C.red:p.error_days>5?C.amber:C.green};">${p.error_days}d</td></tr>`;
+           }).join('')}
+         </tbody></table></div>
+       </div>`
+    : `<div class="card" style="text-align:center;padding:44px 24px;">
+         <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:${C.textMuted};">${ICON('alertTriangle',18)}</div>
+         <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Not enough history yet</div>
+         <div class="muted" style="font-size:12.5px;max-width:440px;margin:0 auto;line-height:1.6;">${esc(bt.note)}</div>
+       </div>`;
+
+  return `
+    ${sampleOrEmptyState(dataMode, true, 'payment history')}
+    <div class="card">
+      <div class="card-head"><div>
+        <div class="card-title">Per-customer days-to-pay model</div>
+        <div class="card-sub">Empirical low / expected / high days-to-pay, built from each customer's own paid-invoice history (minimum ${engine_min_required(dtpAll)} invoices with recorded payment dates). Customers below that fall back to the score-based forecast.</div>
+      </div></div>
+      <div class="scrollx"><table class="data"><thead><tr><th>Customer</th><th>Paid invoices used</th><th>Low</th><th>Expected</th><th>High</th></tr></thead><tbody>${modelRows}</tbody></table></div>
+      ${fallbackNote}
+    </div>
+    <div style="margin-top:18px;">
+      ${btBlock}
+    </div>`;
+}
+function engine_min_required(dtpAll){
+  const any = Object.values(dtpAll)[0];
+  return any ? any.min_required : 5;
 }
 
 function customersPage(){
@@ -688,7 +867,7 @@ function customersPage(){
          <div class="tt-row"><span>Exposure factor</span><span>${b.exposure_points}/${b.exposure_max}</span></div>`
       : 'No invoice history yet for this customer.';
     return `<tr>
-      <td style="font-weight:500;">${c.name}</td>
+      <td style="font-weight:500;">${c.name}<div class="faint" style="font-size:11px;font-weight:400;margin-top:2px;">${esc(b ? b.reason : '')}</div></td>
       <td><span class="badge" style="color:${color};background:${bg};cursor:default;" data-tip="${esc(tip)}">${score}/100</span></td>
       <td class="num">${money(c.open_balance)}</td>
       <td class="muted">${action}</td>
@@ -714,22 +893,30 @@ function invoicesPage(){
     .map(i=>{
       const due = new Date(i.due_date);
       const d = Math.round((today-due)/86400000);
-      const statusColor = i.status==='paid'?C.green : i.status==='disputed'?C.amber : d>0?C.red : C.blue;
-      const statusLabel = i.status==='paid'?'Paid' : i.status==='disputed'?'Disputed' : d>0?`${d}d overdue`:'Open';
+      const statusColor = i.status==='paid'?C.green : i.status==='partial'?C.amber : i.status==='disputed'?C.amber : d>0?C.red : C.blue;
+      const statusLabel = i.status==='paid'?'Paid' : i.status==='partial'?'Partial' : i.status==='disputed'?'Disputed' : d>0?`${d}d overdue`:'Open';
+      const correctedNote = i.raw_status && i.raw_status !== i.status
+        ? `<div class="faint" style="font-size:10.5px;margin-top:2px;">was "${esc(i.raw_status)}" — corrected on reconciliation</div>` : '';
+      const gross = i.gross_amount ?? i.amount;
+      const paidAmt = i.paid_amount ?? 0;
       return `<tr>
         <td class="num muted">${i.id}</td><td style="font-weight:500;">${i.customer_name}</td>
-        <td class="num">${money(i.amount)}</td><td class="muted">${i.issued_date}</td><td class="muted">${i.due_date}</td>
-        <td><span class="status-dot" style="background:${statusColor};"></span>${statusLabel}</td>
+        <td class="num">${money(gross)}</td>
+        <td class="num muted">${paidAmt>0 ? money(paidAmt) : '—'}</td>
+        <td class="num" style="font-weight:600;">${money(i.amount)}</td>
+        <td class="muted">${i.issued_date}</td><td class="muted">${i.due_date}</td>
+        <td><span class="status-dot" style="background:${statusColor};"></span>${statusLabel}${correctedNote}</td>
       </tr>`;
     }).join('');
 
   return `
+    ${insightBanner('checkCircle','Net balances', 'Balance = gross invoice amount minus payments actually matched to it. A payment that fully clears an invoice but was still marked open in the source system is corrected here automatically — see the note under its status.', 'info')}
     <div class="card">
       <div class="card-head"><div>
         <div class="card-title">All invoices</div>
-        <div class="card-sub">${DATA.invoices.invoices.length} invoices currently in the system.</div>
+        <div class="card-sub">${DATA.invoices.invoices.length} invoices currently in the system. Gross = original amount, Paid = matched payments, Balance = what's actually still owed.</div>
       </div></div>
-      <div class="scrollx"><table class="data"><thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Issued</th><th>Due</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="scrollx"><table class="data"><thead><tr><th>Invoice</th><th>Customer</th><th>Gross</th><th>Paid</th><th>Balance</th><th>Issued</th><th>Due</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>`;
 }
 
@@ -1178,15 +1365,16 @@ function closeDossierModal(){
  *     invoices, computed off real due dates against today.
  */
 function computeDossierData(name){
+  // Single source of truth: DATA.invoices.invoices IS the backend's reconciled
+  // ledger (gross_amount, paid_amount, amount=net balance, status=corrected
+  // effective status) — no separate re-derivation here anymore, so this can
+  // never again disagree with the Customers page or Executive Summary.
   const invoices = DATA.invoices.invoices.filter(i=>i.customer_name===name);
   const custScore = DATA.customers.customers.find(c=>c.name===name);
-  const payments = DATA.reconciliation.results.filter(p=>(p.customer_name||p.customer_id)===name);
   const today = new Date();
 
-  const totalInvoiced = invoices.reduce((s,i)=>s+i.amount,0);
-  const clearedFunds = payments
-    .filter(p=>['matched','partial','overpaid','duplicate'].includes(p.match_status))
-    .reduce((s,p)=>s+p.amount,0);
+  const totalInvoiced = invoices.reduce((s,i)=>s+(i.gross_amount ?? i.amount),0);
+  const clearedFunds = invoices.reduce((s,i)=>s+(i.paid_amount ?? 0),0);
   const netOutstanding = custScore ? custScore.open_balance
     : invoices.filter(i=>i.status!=='paid').reduce((s,i)=>s+i.amount,0);
 
@@ -1198,24 +1386,29 @@ function computeDossierData(name){
   });
 
   const rows = invoices.map(inv=>{
-    const matchedPmts = payments.filter(p=>p.invoice && p.invoice.id===inv.id);
-    const paidSoFar = matchedPmts.reduce((s,p)=>s+p.amount,0);
-    const netBalance = inv.status==='paid' ? 0 : +(inv.amount - paidSoFar).toFixed(2);
-    const pdcRef = matchedPmts.length ? matchedPmts.map(p=>p.id).join(', ') : '—';
+    const gross = inv.gross_amount ?? inv.amount;
+    const pdcRef = (inv.applied_payment_ids && inv.applied_payment_ids.length) ? inv.applied_payment_ids.join(', ') : '—';
     const d = Math.round((today - new Date(inv.due_date))/86400000);
     const statusLabel = inv.status==='paid' ? 'Cleared'
+      : inv.status==='partial' ? 'Partial'
       : inv.status==='disputed' ? 'Disputed'
       : d>0 ? `${d}d Overdue` : 'Current';
-    return { ref: inv.id, issued: inv.issued_date, due: inv.due_date, gross: inv.amount, pdcRef, net: netBalance, status: statusLabel };
+    return { ref: inv.id, issued: inv.issued_date, due: inv.due_date, gross, pdcRef, net: inv.amount, status: statusLabel };
   }).sort((a,b)=> new Date(a.due) - new Date(b.due));
 
-  return { name, totalInvoiced, clearedFunds, netOutstanding, oldestOverdueDays, rows };
+  // Real construction data for this customer — only what's actually on file.
+  const retentionRows = DATA.retention.rows.filter(r=>r.customer_name===name);
+  const ipcRows = DATA.ipcVariance.rows.filter(r=>r.customer_name===name);
+  const pdcRows = DATA.pdc.rows.filter(r=>r.customer_name===name);
+
+  return { name, totalInvoiced, clearedFunds, netOutstanding, oldestOverdueDays, rows, retentionRows, ipcRows, pdcRows };
 }
 
 function renderDossierModal(root){
   const name = STATE.dossierCustomer;
   const d = computeDossierData(name);
   const todayStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+  const isSample = DATA.overview.data_mode === 'sample';
 
   const rowsHtml = d.rows.map(r=>`<tr>
       <td>${esc(r.ref)}</td><td>${esc(r.issued)}</td><td>${esc(r.due)}</td>
@@ -1224,6 +1417,39 @@ function renderDossierModal(root){
       <td style="text-align:right;">${money(r.net)}</td>
       <td>${esc(r.status)}</td>
     </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:#5b5f6b;">No invoices on file for this entity.</td></tr>`;
+
+  // Retention / IPC / PDC sections are OMITTED entirely — not shown as
+  // locked or empty — when this customer has no such data at all.
+  const retLabel = {held:'Held', due_soon:'Due soon', overdue_for_release:'Overdue for release', unscheduled:'Unscheduled'};
+  const retentionSection = d.retentionRows.length ? `
+    <div class="dossier-section-title">Retention Held</div>
+    <table class="dossier-table">
+      <thead><tr><th>Invoice</th><th>Tranche</th><th style="text-align:right;">Amount</th><th>Release</th><th>Status</th></tr></thead>
+      <tbody>${d.retentionRows.map(r=>`<tr>
+        <td>${esc(r.invoice_id)}</td><td style="text-transform:capitalize;">${r.tranche}</td>
+        <td style="text-align:right;">${money(r.amount)}</td>
+        <td>${r.release_date || (r.release_rule?esc(r.release_rule):'—')}</td>
+        <td>${retLabel[r.status]}</td></tr>`).join('')}</tbody>
+    </table>` : '';
+
+  const ipcSection = d.ipcRows.length ? `
+    <div class="dossier-section-title">IPC vs Claimed Variance</div>
+    <table class="dossier-table">
+      <thead><tr><th>Invoice</th><th style="text-align:right;">Claimed</th><th style="text-align:right;">Certified (IPC)</th><th style="text-align:right;">Variance</th></tr></thead>
+      <tbody>${d.ipcRows.map(r=>`<tr>
+        <td>${esc(r.invoice_id)}</td><td style="text-align:right;">${money(r.claimed)}</td>
+        <td style="text-align:right;">${money(r.certified)}</td>
+        <td style="text-align:right;">${r.variance>0?'+':''}${money(r.variance)}</td></tr>`).join('')}</tbody>
+    </table>` : '';
+
+  const pdcSection = d.pdcRows.length ? `
+    <div class="dossier-section-title">Post-Dated Cheques</div>
+    <table class="dossier-table">
+      <thead><tr><th>Cheque</th><th>Bank</th><th>Cheque Date</th><th style="text-align:right;">Amount</th><th>Status</th></tr></thead>
+      <tbody>${d.pdcRows.map(r=>`<tr>
+        <td>${esc(r.cheque_number)}</td><td>${esc(r.bank||'—')}</td><td>${r.cheque_date||'—'}</td>
+        <td style="text-align:right;">${money(r.amount)}</td><td style="text-transform:capitalize;">${r.pdc_status}</td></tr>`).join('')}</tbody>
+    </table>` : '';
 
   root.innerHTML = `
     <div class="modal-backdrop" id="modalBackdrop">
@@ -1240,6 +1466,7 @@ function renderDossierModal(root){
         </div>
 
         <div class="dossier-sheet" id="dossierSheet">
+          ${isSample ? `<div style="background:#fff3cd;color:#7a5b00;font-size:10px;font-weight:700;padding:5px 10px;border-radius:6px;display:inline-block;margin-bottom:10px;">SAMPLE DATA — FOR DEMONSTRATION ONLY</div>` : ''}
           <div class="dossier-header">
             <div>
               <div class="dossier-title">KINETICS GROUP LLC — EXECUTIVE COMMERCIAL AR DOSSIER</div>
@@ -1264,19 +1491,9 @@ function renderDossierModal(root){
             <tbody>${rowsHtml}</tbody>
           </table>
 
-          <div class="dossier-section-title">Phase 2 Enterprise Modules</div>
-          <div class="dossier-locked-grid">
-            <div class="dossier-locked-card">
-              <span class="lock-badge">🔒 PHASE 2 ENTERPRISE TIER</span>
-              <div class="lt">FIDIC Progress Certification Tracking (Sub-Clause 14.6)</div>
-              <div class="ld">Displays the variance between claimed milestone value and the certified Interim Payment Certificate (IPC) amount, invoice by invoice.<br><b>Status:</b> Unlocks upon Phase 2 ERP direct sync.</div>
-            </div>
-            <div class="dossier-locked-card">
-              <span class="lock-badge">🔒 PHASE 2 ENTERPRISE TIER</span>
-              <div class="lt">Dual-Tranche Retention Release Engine (Sub-Clause 14.9)</div>
-              <div class="ld">Automates aging of the 5% Handover and 5% Defects Liability Period (DLP) holdbacks to prevent silent write-offs.<br><b>Status:</b> Unlocks upon Phase 2 ERP direct sync.</div>
-            </div>
-          </div>
+          ${retentionSection}
+          ${ipcSection}
+          ${pdcSection}
 
           <div class="dossier-footnote">
             This statement is issued for internal commercial reconciliation purposes. Kinetics Group LLC formally reserves all rights
@@ -1286,6 +1503,7 @@ function renderDossierModal(root){
         </div>
       </div>
     </div>`;
+
 
   document.getElementById('modalCloseBtn').addEventListener('click', closeDossierModal);
   document.getElementById('modalBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='modalBackdrop') closeDossierModal(); });
@@ -1332,7 +1550,19 @@ function renderModal(){
             <span class="muted">Minimum collection probability floor</span>
             <input type="number" id="s_floor" min="0" max="1" step="0.01" value="${s.min_probability}">
           </div>
+          <div class="threshold-row">
+            <span class="muted">Data mode label (${esc(DATA.overview.data_mode)} detected)</span>
+            <select id="s_datamode" style="background:var(--cardAlt);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 9px;font-size:12.5px;min-width:150px;">
+              <option value="" ${!SETTINGS.data_mode_override?'selected':''}>Auto-detect</option>
+              <option value="sample" ${SETTINGS.data_mode_override==='sample'?'selected':''}>Force "Sample data"</option>
+              <option value="live" ${SETTINGS.data_mode_override==='live'?'selected':''}>Force "Live"</option>
+            </select>
+          </div>
           <div class="modal-note">Recalibrating recomputes credit scores, the cash flow forecast, and every summary banner across the dashboard from your live data — nothing here is faked or cached.</div>
+          <div class="threshold-row" style="margin-top:14px;">
+            <span class="muted">ERP connector (${esc(DATA.erpStatus.adapter)})</span>
+            <span class="badge" style="color:${DATA.erpStatus.verified?C.green:C.amber};background:${DATA.erpStatus.verified?C.greenDim:C.amberDim};" data-tip="${esc(DATA.erpStatus.note)}">${DATA.erpStatus.verified?'Verified':'Not yet verified'}</span>
+          </div>
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" id="resetBaselineBtn">Reset to UAE Contracting Baseline</button>
@@ -1386,6 +1616,18 @@ function renderModal(){
       showToast('Reset to the UAE Contracting Baseline.');
     } catch(e){ showToast('Could not reach the API to reset.'); }
   });
+
+  document.getElementById('s_datamode').addEventListener('change', async (e)=>{
+    const override = e.target.value || null;
+    try{
+      await fetch('/api/data-mode', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({override})});
+      await loadData();
+      renderShell();
+      STATE.modal = 'settings';
+      renderModal();
+      showToast(override ? `Data mode label forced to "${override === 'live' ? 'Live' : 'Sample data'}".` : 'Data mode set back to auto-detect.');
+    } catch(err){ showToast('Could not reach the API to update data mode.'); }
+  });
 }
 
 /* ============================= shell / nav ============================= */
@@ -1394,23 +1636,48 @@ const NAV = [
   {id:'cashflow', label:'Cash Flow Prediction', icon:'trendingUp'},
   {id:'aging', label:'Aging Report', icon:'alertTriangle'},
   {id:'reconciliation', label:'Reconciliation', icon:'checkCircle'},
+  {id:'retention', label:'Retention & PDC', icon:'shieldAlert'},
+  {id:'forecast_accuracy', label:'Forecast Accuracy', icon:'trendingUp'},
   {id:'followups', label:'Follow-Ups', icon:'send'},
   {id:'disputes', label:'Disputes', icon:'shieldAlert'},
   {id:'customers', label:'Customers', icon:'users'},
   {id:'invoices', label:'Invoices', icon:'fileText'}
 ];
-const TITLES = {overview:'Executive Summary', cashflow:'Cash Flow Prediction', aging:'Aging Report', reconciliation:'Reconciliation', followups:'Follow-Ups', disputes:'Disputes', customers:'Customers', invoices:'Invoices'};
+const TITLES = {overview:'Executive Summary', cashflow:'Cash Flow Prediction', aging:'Aging Report', reconciliation:'Reconciliation', retention:'Retention & PDC', forecast_accuracy:'Forecast Accuracy', followups:'Follow-Ups', disputes:'Disputes', customers:'Customers', invoices:'Invoices'};
 const DESCS = {
   overview: 'The 30-second version: what needs your personal attention and whether your cash flow is healthy — computed live from your data.',
   cashflow: "What's expected to land over the next weeks, weighted by each customer's own payment reliability — not a flat guess.",
   aging: "What's overdue, how badly, and which accounts are actually driving the risk — computed off real due dates.",
   reconciliation: "Every incoming payment checked against your invoices automatically — mismatches flagged for you.",
+  retention: "Retention held per project, claimed-vs-certified (IPC) variance, and post-dated cheque status — only shown where you've supplied the data.",
+  forecast_accuracy: "How reliably the forecast actually predicts collections, per customer where there's enough history — never a guessed accuracy number.",
   followups: 'Relationship-led collections — protecting buyer goodwill while giving your team visibility.',
   disputes: 'Relationship-led dispute tracking — connect your CRM/case system to activate.',
   customers: 'Which customers pay reliably, and what we recommend doing about the risky ones.',
   invoices: 'Every invoice currently in the system.'
 };
-const PAGES = {overview:overviewPage, cashflow:cashFlowPage, aging:agingReportPage, reconciliation:reconciliationPage, followups:followUpsPage, disputes:disputesPage, customers:customersPage, invoices:invoicesPage};
+const PAGES = {overview:overviewPage, cashflow:cashFlowPage, aging:agingReportPage, reconciliation:reconciliationPage, retention:retentionPage, forecast_accuracy:forecastAccuracyPage, followups:followUpsPage, disputes:disputesPage, customers:customersPage, invoices:invoicesPage};
+
+function dataModeChip(){
+  const mode = DATA.overview.data_mode;
+  const isLive = mode === 'live';
+  return `<span class="live-chip" style="${isLive?'':'color:var(--amber);'}">
+    <span class="live-dot" style="background:${isLive?C.green:C.amber};box-shadow:0 0 0 3px ${isLive?'rgba(52,211,153,0.18)':'rgba(245,165,36,0.18)'};"></span>
+    <span>${isLive?'Live':'Sample data'}</span></span>`;
+}
+
+function reconciledChip(){
+  const h = DATA.ledgerHealth;
+  const ok = h && h.all_passed;
+  const when = h ? new Date(h.checked_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
+  const tip = h
+    ? (ok ? `All 4 consistency checks passed as of ${esc(when)}.`
+          : 'Checks failing:<br>' + h.checks.filter(c=>!c.pass).map(c=>'• '+esc(c.name)).join('<br>'))
+    : 'Not checked yet.';
+  return `<span class="live-chip" style="cursor:default;${ok?'':'color:'+C.red+';'}" data-tip="${esc(tip)}">
+    <span class="live-dot" style="background:${ok?C.green:C.red};box-shadow:0 0 0 3px ${ok?'rgba(52,211,153,0.18)':'rgba(241,87,61,0.18)'};"></span>
+    <span>${ok?'Reconciled':'Needs attention'}${when?' · '+when:''}</span></span>`;
+}
 
 function renderShell(){
   const sideItems = NAV.map(n=>`<button class="side-item ${STATE.view===n.id?'active':''}" data-nav="${n.id}">${ICON(n.icon,17)}<span>${n.label}</span></button>`).join('');
@@ -1431,7 +1698,7 @@ function renderShell(){
       <div class="topbar">
         <div>
           <div class="page-title"><span id="pageTitle">${TITLES[STATE.view]}</span>
-            <span class="live-chip"><span class="live-dot"></span><span>Live</span></span>
+            ${dataModeChip()}${reconciledChip()}
           </div>
           <div class="page-desc" id="pageDesc">${DESCS[STATE.view]}</div>
         </div>
