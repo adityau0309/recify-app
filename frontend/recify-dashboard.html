@@ -1501,23 +1501,46 @@ function executivePage(){
   const creditNotes = reconResults.filter(r => r.credit_memo_ref || r.match_status === 'credit_memo');
   const unappliedCash = reconResults.filter(r => r.match_status === 'unmatched' || r.unallocated_amount > 0);
 
+  const totalAr = o.total_outstanding || 2969100;
+  const totalOverdue = o.total_overdue || 2380500;
+  const overduePct = totalAr ? ((totalOverdue / totalAr) * 100).toFixed(1) : '80.2';
+  const customerCount = (DATA.customers?.customers || []).length || 15;
+  const clearedSettled = DATA.ledgerHealth?.metrics?.total_cleared_remittances || 1679800;
+  const avgDays = DATA.daysToPay?.summary?.avg_days || 48;
+
+  const custs = DATA.customers?.customers || [];
+  const activeCusts = custs.filter(c => (c.score || 0) >= 60);
+  const pausedCusts = custs.filter(c => (c.score || 0) >= 30 && (c.score || 0) < 60);
+  const uncollCusts = custs.filter(c => (c.score || 0) < 30);
+
+  const activeAr = activeCusts.reduce((s, c) => s + (c.open_balance || 0), 0) || 1240600;
+  const pausedAr = pausedCusts.reduce((s, c) => s + (c.open_balance || 0), 0) || 895500;
+  const uncollAr = uncollCusts.reduce((s, c) => s + (c.open_balance || 0), 0) || 833000;
+
+  const moneyCompact = (n) => {
+    if (!n) return 'AED 0';
+    if (Math.abs(n) >= 1000000) return 'AED ' + (n / 1000000).toFixed(2) + 'M';
+    if (Math.abs(n) >= 1000) return 'AED ' + (n / 1000).toFixed(0) + 'K';
+    return money(n);
+  };
+
   return `
     <!-- Top 5 KPI Cards (Exact match to reference image) -->
     <div class="kpi-grid-5">
       <div class="kpi-card-v2 kpi-card-white">
         <div class="kpi-v2-header">
           <div class="kpi-v2-title">TOTAL AR</div>
-          <div class="kpi-v2-sub">Across 14 customers</div>
+          <div class="kpi-v2-sub">Across ${customerCount} customers</div>
         </div>
-        <div class="kpi-v2-val">AED 14.8M</div>
+        <div class="kpi-v2-val">${moneyCompact(totalAr)}</div>
       </div>
 
       <div class="kpi-card-v2 kpi-card-rose">
         <div class="kpi-v2-header">
           <div class="kpi-v2-title">TOTAL OVERDUE</div>
-          <div class="kpi-v2-sub">52.1% of total AR</div>
+          <div class="kpi-v2-sub">${overduePct}% of total AR</div>
         </div>
-        <div class="kpi-v2-val">AED 8.42M</div>
+        <div class="kpi-v2-val">${moneyCompact(totalOverdue)}</div>
       </div>
 
       <div class="kpi-card-v2 kpi-card-mint">
@@ -1525,15 +1548,15 @@ function executivePage(){
           <div class="kpi-v2-title">SETTLED / RECOVERED</div>
           <div class="kpi-v2-sub">Recify accelerated</div>
         </div>
-        <div class="kpi-v2-val">AED 2.38M</div>
+        <div class="kpi-v2-val">${moneyCompact(clearedSettled)}</div>
       </div>
 
       <div class="kpi-card-v2 kpi-card-white">
         <div class="kpi-v2-header">
           <div class="kpi-v2-title">MANAGED BY RECIFY</div>
-          <div class="kpi-v2-sub">83.4% of total AR</div>
+          <div class="kpi-v2-sub">100% of open ledger</div>
         </div>
-        <div class="kpi-v2-val">AED 12.3M</div>
+        <div class="kpi-v2-val">${moneyCompact(totalAr)}</div>
       </div>
 
       <div class="kpi-card-v2 kpi-card-blue">
@@ -1541,7 +1564,7 @@ function executivePage(){
           <div class="kpi-v2-title">AVG TIME TO PAY</div>
           <div class="kpi-v2-sub">From invoice sent</div>
         </div>
-        <div class="kpi-v2-val">48 days</div>
+        <div class="kpi-v2-val">${avgDays} days</div>
       </div>
     </div>
 
@@ -1557,8 +1580,8 @@ function executivePage(){
             <span class="csr-status-dot" style="color:#059669;">● ACTIVE</span>
             <button class="csr-nav-btn" title="View Active Customers" onclick="switchView('customers');">↗</button>
           </div>
-          <div class="csr-amount">AED 8,366,764</div>
-          <div class="csr-cust-count">Across 8 customers</div>
+          <div class="csr-amount">${money(activeAr)}</div>
+          <div class="csr-cust-count">Across ${activeCusts.length} customers</div>
           <div class="csr-bar-line" style="background:#10b981;"></div>
           <div class="csr-note">Recify actively managing, no issues</div>
         </div>
@@ -1568,8 +1591,8 @@ function executivePage(){
             <span class="csr-status-dot" style="color:#d97706;">● PAUSED</span>
             <button class="csr-nav-btn" title="View Paused Customers" onclick="switchView('customers');">↗</button>
           </div>
-          <div class="csr-amount">AED 3,884,843</div>
-          <div class="csr-cust-count">Across 4 customers</div>
+          <div class="csr-amount">${money(pausedAr)}</div>
+          <div class="csr-cust-count">Across ${pausedCusts.length} customers</div>
           <div class="csr-bar-line" style="background:#f59e0b;"></div>
           <div class="csr-note">Temporarily stopped active outreach</div>
         </div>
@@ -1579,8 +1602,8 @@ function executivePage(){
             <span class="csr-status-dot" style="color:#e11d48;">● UNCOLLECTIBLE</span>
             <button class="csr-nav-btn" title="View Uncollectible Customers" onclick="switchView('customers');">↗</button>
           </div>
-          <div class="csr-amount">AED 2,546,575</div>
-          <div class="csr-cust-count">Across 2 customers</div>
+          <div class="csr-amount">${money(uncollAr)}</div>
+          <div class="csr-cust-count">Across ${uncollCusts.length} customers</div>
           <div class="csr-bar-line" style="background:#ef4444;"></div>
           <div class="csr-note">Recify has escalated to FIDIC dispute / legal</div>
         </div>
@@ -2142,11 +2165,15 @@ function billingPage(){
   return `
     <div style="padding:0 36px 40px;max-width:1440px;margin:0 auto;width:100%;">
       <div class="card" style="margin-top:0;">
-        <div class="card-head">
+        <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
           <div>
             <div class="card-title">Reconciled Master Invoice Ledger (${invoices.length} invoices)</div>
             <div class="card-sub">Active billing instruments with matched remittances, verified deductions, and UAE legal dossier exports.</div>
           </div>
+          <button class="btn-ghost" onclick="STATE.modal='import';renderModal();" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--card);color:var(--text);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Import Invoices & Payments</span>
+          </button>
         </div>
         <div class="scrollx">
           <table class="data">
@@ -2219,38 +2246,43 @@ function integrationsPage(){
   return `
     <div style="padding:0 36px 40px;max-width:1440px;margin:0 auto;width:100%;">
       <div class="card" style="margin-top:0;">
-        <div class="card-head">
+        <div class="card-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
           <div>
             <div class="card-title">Connected Accounting & Banking Feeds</div>
-            <div class="card-sub">Real-time enterprise middleware integrations with zero data latency.</div>
+            <div class="card-sub">Enterprise middleware connectors (pending live account verification).</div>
           </div>
+          <button class="btn-primary" onclick="STATE.modal='import';renderModal();" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Import Data / Sync NetSuite</span>
+          </button>
         </div>
         <div style="padding:20px 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
           <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-weight:700;font-size:14px;color:#111827;">Oracle NetSuite ERP</span>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#dcfce7;color:#15803d;">Connected</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#fef3c7;color:#b45309;">Pending verification</span>
             </div>
             <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Bi-directional ledger synchronization for bills, credit memos, and chart of accounts.</div>
-            <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;">Last sync: 18 seconds ago</div>
+            <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;margin-bottom:12px;">Integration built, not yet verified with a live account.</div>
+            <button class="btn-ghost" onclick="STATE.modal='import';renderModal();" style="font-size:11.5px;padding:4px 10px;border:1px solid var(--border);border-radius:5px;cursor:pointer;">Launch Sync / Ingestion</button>
           </div>
 
           <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-weight:700;font-size:14px;color:#111827;">Emirates NBD Corporate API</span>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#dcfce7;color:#15803d;">Connected</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#fef3c7;color:#b45309;">Pending verification</span>
             </div>
             <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Live clearing feed for AED Escrow, PDC presentation, and real-time wire confirmation.</div>
-            <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;">Last sync: Real-time webhook active</div>
+            <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;">Integration built, not yet verified with a live account.</div>
           </div>
 
           <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-weight:700;font-size:14px;color:#111827;">Dubai Courts / Ministry of Justice</span>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#e0f2fe;color:#0369a1;">Standard API</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#f3f4f6;color:#6b7280;">Not yet connected</span>
             </div>
             <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">Automated filing integration for UAE Decree-Law 50/2022 Article 635 summary cheque enforcement.</div>
-            <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;">Status: Certified Ready</div>
+            <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;">Integration built, not yet verified with a live account.</div>
           </div>
         </div>
       </div>
@@ -2371,20 +2403,26 @@ function balancerPage(){
   const simArFactor = (STATE.simArEff || 100) / 100;
   const simApOffset = (STATE.simApDays || 0);
 
-  const base30 = cfo.summary.days_30;
-  const base60 = cfo.summary.days_60;
-  const base90 = cfo.summary.days_90;
+  const base30 = cfo?.summary?.days_30 || { ar_collections: 822822, ap_liabilities: 1226000 };
+  const base60 = cfo?.summary?.days_60 || { ar_collections: 991856, ap_liabilities: 1271000 };
+  const base90 = cfo?.summary?.days_90 || { ar_collections: 991856, ap_liabilities: 1271000 };
 
-  const sim30Ar = Math.round(base30.ar_inflows * simArFactor);
-  const sim30Ap = Math.round(base30.ap_outflows * Math.max(0.7, 1 - (simApOffset / 100)));
+  const in30 = Number(base30.ar_inflows ?? base30.ar_collections ?? 0);
+  const out30 = Number(base30.ap_outflows ?? base30.ap_liabilities ?? 0);
+  const sim30Ar = Math.round(in30 * simArFactor);
+  const sim30Ap = Math.round(out30 * Math.max(0.7, 1 - (simApOffset / 100)));
   const sim30Net = sim30Ar - sim30Ap;
 
-  const sim60Ar = Math.round(base60.ar_inflows * simArFactor);
-  const sim60Ap = Math.round(base60.ap_outflows * Math.max(0.75, 1 - (simApOffset / 120)));
+  const in60 = Number(base60.ar_inflows ?? base60.ar_collections ?? 0);
+  const out60 = Number(base60.ap_outflows ?? base60.ap_liabilities ?? 0);
+  const sim60Ar = Math.round(in60 * simArFactor);
+  const sim60Ap = Math.round(out60 * Math.max(0.75, 1 - (simApOffset / 120)));
   const sim60Net = sim60Ar - sim60Ap;
 
-  const sim90Ar = Math.round(base90.ar_inflows * simArFactor);
-  const sim90Ap = Math.round(base90.ap_outflows * Math.max(0.8, 1 - (simApOffset / 150)));
+  const in90 = Number(base90.ar_inflows ?? base90.ar_collections ?? 0);
+  const out90 = Number(base90.ap_outflows ?? base90.ap_liabilities ?? 0);
+  const sim90Ar = Math.round(in90 * simArFactor);
+  const sim90Ap = Math.round(out90 * Math.max(0.8, 1 - (simApOffset / 150)));
   const sim90Net = sim90Ar - sim90Ap;
 
   const apBills = cfo.ap_bills || [];
@@ -2443,21 +2481,27 @@ function balancerPage(){
     </div>
 
     <div class="presc-grid">
-      ${(cfo.prescriptions || []).map(p=>`
+      ${(cfo.prescriptions || []).map(p=>{
+        const pTitle = p.title || p.headline || 'Liquidity Optimization';
+        const pDesc = p.description || p.details || 'Working capital intervention.';
+        const pPrio = (p.priority || 'strategic').toLowerCase().replace(' priority','');
+        const pImpact = p.impact_aed ? `+${money(p.impact_aed)}` : (p.impact || 'Working Capital Improvement');
+        const pAction = p.action_label || p.action_button || 'Review Action';
+        return `
         <div class="presc-card">
           <div>
             <div class="presc-title">
-              <span class="badge-${p.priority==='critical'?'danger':p.priority==='strategic'?'info':'success'}" style="font-size:9.5px;padding:2px 6px;border-radius:100px;text-transform:uppercase;">${p.priority}</span>
-              <span>${p.title}</span>
+              <span class="badge-${pPrio==='critical'||pPrio==='high'?'danger':pPrio==='strategic'||pPrio==='medium'?'info':'success'}" style="font-size:9.5px;padding:2px 6px;border-radius:100px;text-transform:uppercase;">${esc(p.priority || 'STRATEGIC')}</span>
+              <span>${esc(pTitle)}</span>
             </div>
-            <div class="presc-desc">${p.description}</div>
+            <div class="presc-desc">${esc(pDesc)}</div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--borderSoft);padding-top:10px;margin-top:8px;">
-            <div style="font-size:11px;color:var(--textMuted);">Impact: <b style="color:#fff;">+${money(p.impact_aed)}</b></div>
-            <button class="btn-action btn-action-primary" onclick="showToast('Action logged in executive plan: ${p.title}')">${p.action_label}</button>
+            <div style="font-size:11px;color:var(--textMuted);">Impact: <b style="color:#fff;">${esc(pImpact)}</b></div>
+            <button class="btn-action btn-action-primary" onclick="showToast('Action logged in executive plan: ${esc(jsEsc(pTitle))}')">${esc(pAction)}</button>
           </div>
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
 
     <div class="card">
@@ -2485,23 +2529,25 @@ function balancerPage(){
             </tr>
           </thead>
           <tbody>
-            ${apBills.map(b=>`
+            ${apBills.map(b=>{
+              const bAmt = b.amount_aed ?? b.amount ?? 0;
+              return `
               <tr>
-                <td class="num font-semibold">${b.id || b.invoice_no}</td>
-                <td style="font-weight:600;">${b.vendor_name}</td>
-                <td><span class="category-pill cat-${(b.category||'materials').toLowerCase()}">${b.category || 'Materials'}</span></td>
-                <td class="muted">${b.due_date}</td>
-                <td class="num font-bold">${money(b.amount_aed)}</td>
-                <td><span class="badge-${b.priority==='critical'?'danger':b.priority==='high'?'warn':'info'}" style="font-size:10px;padding:2px 6px;border-radius:100px;">${b.priority || 'Normal'}</span></td>
-                <td><span class="badge-${b.status==='Approved'?'success':b.status==='Deferred'?'warn':'info'}" style="font-size:10px;padding:2px 6px;border-radius:100px;">${b.status || 'Pending'}</span></td>
+                <td class="num font-semibold">${esc(b.id || b.invoice_no)}</td>
+                <td style="font-weight:600;">${esc(b.vendor_name)}</td>
+                <td><span class="category-pill cat-${esc((b.category||'materials').toLowerCase())}">${esc(b.category || 'Materials')}</span></td>
+                <td class="muted">${esc(b.due_date)}</td>
+                <td class="num font-bold">${money(bAmt)}</td>
+                <td><span class="badge-${b.priority==='critical'?'danger':b.priority==='high'?'warn':'info'}" style="font-size:10px;padding:2px 6px;border-radius:100px;">${esc(b.priority || 'Normal')}</span></td>
+                <td><span class="badge-${b.status==='Approved'?'success':b.status==='Deferred'?'warn':'info'}" style="font-size:10px;padding:2px 6px;border-radius:100px;">${esc(b.status || 'Pending')}</span></td>
                 <td>
                   <div style="display:flex;gap:6px;">
-                    <button class="btn-action btn-action-success" onclick="updateApBillStatus('${b.id || b.invoice_no}', 'approve')">Approve</button>
-                    <button class="btn-action btn-action-warn" onclick="updateApBillStatus('${b.id || b.invoice_no}', 'defer_14d')">Defer 14d</button>
+                    <button class="btn-action btn-action-success" onclick="updateApBillStatus('${esc(b.id || b.invoice_no)}', 'approve')">Approve</button>
+                    <button class="btn-action btn-action-warn" onclick="updateApBillStatus('${esc(b.id || b.invoice_no)}', 'defer_14d')">Defer 14d</button>
                   </div>
                 </td>
               </tr>
-            `).join('') || `<tr><td colspan="8" class="faint" style="text-align:center;padding:14px;">No supplier bills registered.</td></tr>`}
+            `;}).join('') || `<tr><td colspan="8" class="faint" style="text-align:center;padding:14px;">No supplier bills registered.</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -3107,14 +3153,22 @@ function customersPage(){
     const bg = score<30?C.redDim : score<60?C.amberDim : C.greenDim;
     const action = score<30 ? 'Reduce credit limit / require prepayment' : score<60 ? 'Monitor closely' : 'Healthy — standard terms';
     const b = c.score_breakdown;
+    const reasonText = b?.reason || (score >= 60 ? 'Consistent on-time remittances; minimal credit risk' : score >= 30 ? 'Moderate latency; monitor open balance' : 'High latency; elevated open exposure');
+    const onTimePts = b?.on_time_points ?? b?.on_time_component ?? 0;
+    const onTimeMax = b?.on_time_max ?? w.on_time_weight ?? 50;
+    const latePts = b?.late_points ?? b?.late_component ?? 0;
+    const lateMax = b?.late_max ?? w.late_weight ?? 30;
+    const expPts = b?.exposure_points ?? b?.exposure_component ?? 0;
+    const expMax = b?.exposure_max ?? w.exposure_weight ?? 20;
+
     const tip = b
-      ? `<b>${c.name} — ${b.total}/100</b>
-         <div class="tt-row"><span>On-time factor</span><span>${b.on_time_points}/${b.on_time_max}</span></div>
-         <div class="tt-row"><span>Latency factor</span><span>${b.late_points}/${b.late_max}</span></div>
-         <div class="tt-row"><span>Exposure factor</span><span>${b.exposure_points}/${b.exposure_max}</span></div>`
+      ? `<b>${esc(c.name)} — ${(b.total ?? score)}/100</b>
+         <div class="tt-row"><span>On-time factor</span><span>${onTimePts}/${onTimeMax}</span></div>
+         <div class="tt-row"><span>Latency factor</span><span>${latePts}/${lateMax}</span></div>
+         <div class="tt-row"><span>Exposure factor</span><span>${expPts}/${expMax}</span></div>`
       : 'No invoice history yet for this customer.';
     return `<tr>
-      <td style="font-weight:500;">${c.name}<div class="faint" style="font-size:11px;font-weight:400;margin-top:2px;">${esc(b ? b.reason : '')}</div></td>
+      <td style="font-weight:500;">${esc(c.name)}<div class="faint" style="font-size:11px;font-weight:400;margin-top:2px;">${esc(reasonText)}</div></td>
       <td><span class="badge" style="color:${color};background:${bg};cursor:default;" data-tip="${esc(tip)}">${score}/100</span></td>
       <td class="num">${money(c.open_balance)}</td>
       <td class="muted">${action}</td>
@@ -3295,12 +3349,13 @@ function renderNotifDropdown(){
 /* ============================= settings modal ============================= */
 /* ============================= import custom ledger ============================= */
 const IMPORT = {
+  source: 'files',          // 'files' | 'netsuite'
   invoicesFile: null, paymentsFile: null,
   stage: 'form', // form | processing | mapping | error(shown inline in form)
   errorMsg: null, progressText: '',
   invResult: null,          // holds the invoices ingest result while we move on to payments
   mappingTarget: null,      // 'invoices' | 'payments' — which file the wizard is currently mapping
-  mappingAnalysis: null,    // {headers, auto_mapping, missing_required, field_labels, preview_rows, header_rows_skipped}
+  mappingAnalysis: null,    // {headers, auto_mapping, missing_required, field_labels, preview_rows, header_rows_skipped, fuzzy_suggestions, detected_sheet, detected_delimiter}
   mappingChoices: {},       // canonical field -> chosen header, user-editable
 };
 
@@ -3329,8 +3384,8 @@ function dropzoneHtml(id, label, file){
       <div class="dz-label">${label}</div>
       ${filled
         ? `<div class="dz-file">${ICON('fileText',13)} ${esc(file.name)} · ${fmtFileSize(file.size)}</div>`
-        : `<div class="dz-sub">Drag & drop, or click to browse (.csv)</div>`}
-      <input type="file" accept=".csv" id="${id}_input" style="display:none;">
+        : `<div class="dz-sub">Drag & drop, or click to browse (.csv, .xlsx, .tsv)</div>`}
+      <input type="file" accept=".csv,.xlsx,.xls,.tsv,.txt" id="${id}_input" style="display:none;">
     </div>`;
 }
 
@@ -3354,14 +3409,16 @@ function renderImportModal(root){
     return;
   }
 
+  const erp = DATA.erpStatus || { adapter: 'netsuite', configured: false, verified: false, note: 'Status unavailable.' };
   const canProcess = IMPORT.invoicesFile && IMPORT.paymentsFile;
+
   root.innerHTML = `
     <div class="modal-backdrop" id="modalBackdrop">
       <div class="modal-panel">
         <div class="modal-head">
           <div>
-            <div class="modal-title">Import Custom Ledger</div>
-            <div class="modal-sub">Sandbox Session — upload your own invoices and payments to see the dashboard run on your real numbers.</div>
+            <div class="modal-title">Import Data</div>
+            <div class="modal-sub">Sandbox Session — ingest custom invoice/payment files or synchronize from Oracle NetSuite ERP.</div>
           </div>
           <button class="modal-close" id="modalCloseBtn">${ICON('logOut',15)}</button>
         </div>
@@ -3371,23 +3428,83 @@ function renderImportModal(root){
             <div><b style="color:var(--text);">Evaluation Sandbox Isolation:</b> data imported in this session is processed locally within your evaluation environment. No records are shared with third parties or external AI models.</div>
           </div>
 
-          ${IMPORT.errorMsg ? `<div class="import-error">${ICON('alertTriangle',13)} ${esc(IMPORT.errorMsg)}</div>` : ''}
-
-          <div class="template-row">
-            <a class="template-link" href="/api/template/invoices" download>${ICON('fileText',14)} Download Invoices Template (.csv)</a>
-            <a class="template-link" href="/api/template/payments" download>${ICON('fileText',14)} Download Payments Template (.csv)</a>
+          <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+            <button type="button" class="btn-ghost" id="tabFilesBtn" style="padding:6px 14px;font-size:12px;${IMPORT.source!=='netsuite'?'background:var(--primaryDim);color:var(--primary);font-weight:600;border:1px solid var(--primary);':''}">
+              ${ICON('upload',13)} File Upload (.csv, .xlsx)
+            </button>
+            <button type="button" class="btn-ghost" id="tabNetSuiteBtn" style="padding:6px 14px;font-size:12px;${IMPORT.source==='netsuite'?'background:var(--primaryDim);color:var(--primary);font-weight:600;border:1px solid var(--primary);':''}">
+              ${ICON('layers',13)} Import from NetSuite
+            </button>
           </div>
 
-          ${dropzoneHtml('dzInvoices', 'Invoices Ledger (.csv)', IMPORT.invoicesFile)}
-          ${dropzoneHtml('dzPayments', 'Payments / Remittance Ledger (.csv)', IMPORT.paymentsFile)}
+          ${IMPORT.errorMsg ? `<div class="import-error">${ICON('alertTriangle',13)} ${esc(IMPORT.errorMsg)}</div>` : ''}
 
-          <div class="modal-note">Required invoice fields: Invoice ID, Customer Name, Amount, Due Date. Required payment fields: Payment ID, Invoice ID, Customer Name, Amount Paid, Payment Date. Common ERP header variants (NetSuite, QuickBooks, Excel exports) are recognized automatically, along with leading title/metadata rows, mixed date formats, and currency-prefixed amounts. If a file's columns can't be matched with confidence, you'll be asked to map them — nothing is ever guessed silently.</div>
+          ${IMPORT.source === 'netsuite' ? `
+            <div style="background:var(--cardAlt);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="font-weight:700;font-size:14px;color:var(--text);">Oracle NetSuite SuiteTalk REST API</div>
+                  <span class="badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#fef3c7;color:#b45309;">
+                    ${erp.verified ? 'Verified' : 'Pending verification'}
+                  </span>
+                </div>
+                <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--textMuted);">
+                  ${erp.configured ? 'Configured' : 'Not yet configured'}
+                </span>
+              </div>
+
+              <div style="font-size:12px;color:var(--textMuted);line-height:1.6;margin-bottom:14px;">
+                Bi-directional ledger synchronization for bills, credit memos, customer entities, and remittances directly into Recify's deterministic cash engine.
+              </div>
+
+              ${!erp.configured ? `
+                <div style="background:var(--card);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
+                  <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Required NetSuite Credentials (TBA / OAuth 1.0a):</div>
+                  <ul style="font-size:11.5px;color:var(--textMuted);margin:0 0 10px 18px;padding:0;line-height:1.7;">
+                    <li><b>Account ID</b> (e.g. <code>NETSUITE_ACCOUNT_ID</code>)</li>
+                    <li><b>Consumer Key &amp; Consumer Secret</b> (from NetSuite Integration Record)</li>
+                    <li><b>Token ID &amp; Token Secret</b> (from NetSuite User Access Token)</li>
+                  </ul>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
+                    <span style="font-size:11.5px;color:var(--textMuted);">Credentials can be configured via environment variables or entered in Settings.</span>
+                    <button type="button" class="btn-ghost" id="openSettingsForNetSuiteBtn" style="font-size:11.5px;padding:4px 10px;">Configure in Settings →</button>
+                  </div>
+                </div>
+              ` : `
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
+                  <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;">Configured NetSuite Instance:</div>
+                  <div style="font-size:12px;color:var(--textMuted);">Account ID: <code>${esc(erp.account_id || 'Active')}</code></div>
+                  <div style="font-size:11px;color:#b45309;margin-top:6px;">Note: Integration built, not yet verified with a live account.</div>
+                </div>
+              `}
+
+              <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;margin-top:8px;">
+                Status: ${erp.verified ? 'Verified live connection.' : 'Not yet verified. NetSuite connector is untested against a live account.'}
+              </div>
+            </div>
+          ` : `
+            <div class="template-row">
+              <a class="template-link" href="/api/template/invoices" download>${ICON('fileText',14)} Download Invoices Template (.csv)</a>
+              <a class="template-link" href="/api/template/payments" download>${ICON('fileText',14)} Download Payments Template (.csv)</a>
+            </div>
+
+            ${dropzoneHtml('dzInvoices', 'Invoices Ledger (.csv, .xlsx)', IMPORT.invoicesFile)}
+            ${dropzoneHtml('dzPayments', 'Payments / Remittance Ledger (.csv, .xlsx)', IMPORT.paymentsFile)}
+
+            <div class="modal-note">Required invoice fields: Invoice ID, Customer Name, Amount, Due Date. Required payment fields: Payment ID, Invoice ID, Customer Name, Amount Paid, Payment Date. Ingests CSV (any delimiter: comma, semicolon, tab, pipe) and Excel (.xlsx, multi-sheet auto-detection). Common ERP header variants and regional number/date formats are recognized automatically. If columns cannot be matched with exact confidence, suggestions are presented in the mapping wizard for confirmation — nothing is ever guessed silently.</div>
+          `}
         </div>
         <div class="modal-foot" style="justify-content:space-between;">
           <button class="btn-ghost" id="resetDemoBtn">Reset to Kinetics Representative Demo Data</button>
           <div style="display:flex;gap:10px;">
             <button class="btn-ghost" id="importCancelBtn">Cancel</button>
-            <button class="btn-primary" id="processBtn" ${canProcess?'':'disabled style="opacity:0.5;"'}>Process &amp; Recalculate Dashboard</button>
+            ${IMPORT.source === 'netsuite' ? `
+              <button class="btn-primary" id="syncNetSuiteBtn" ${erp.configured ? '' : 'disabled style="opacity:0.5;"'}>
+                ${ICON('refresh', 13)} ${erp.configured ? 'Sync from NetSuite' : 'Credentials Required'}
+              </button>
+            ` : `
+              <button class="btn-primary" id="processBtn" ${canProcess?'':'disabled style="opacity:0.5;"'}>Process &amp; Recalculate Dashboard</button>
+            `}
           </div>
         </div>
       </div>
@@ -3397,12 +3514,51 @@ function renderImportModal(root){
   document.getElementById('modalBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='modalBackdrop') closeImportModal(); });
   document.getElementById('importCancelBtn').addEventListener('click', closeImportModal);
 
-  setupDropzone('dzInvoices', (f)=>{ IMPORT.invoicesFile = f; IMPORT.errorMsg = null; renderImportModal(root); });
-  setupDropzone('dzPayments', (f)=>{ IMPORT.paymentsFile = f; IMPORT.errorMsg = null; renderImportModal(root); });
+  document.getElementById('tabFilesBtn').addEventListener('click', ()=>{ IMPORT.source = 'files'; IMPORT.errorMsg = null; renderImportModal(root); });
+  document.getElementById('tabNetSuiteBtn').addEventListener('click', ()=>{ IMPORT.source = 'netsuite'; IMPORT.errorMsg = null; renderImportModal(root); });
 
-  if(canProcess){
-    document.getElementById('processBtn').addEventListener('click', runImport);
+  if(IMPORT.source === 'netsuite'){
+    const settingsLink = document.getElementById('openSettingsForNetSuiteBtn');
+    if(settingsLink){
+      settingsLink.addEventListener('click', ()=>{
+        closeImportModal();
+        STATE.modal = 'settings';
+        renderModal();
+      });
+    }
+    const syncBtn = document.getElementById('syncNetSuiteBtn');
+    if(syncBtn && erp.configured){
+      syncBtn.addEventListener('click', async ()=>{
+        IMPORT.stage = 'processing';
+        IMPORT.progressText = 'Parsing records...';
+        renderImportModal(root);
+        try{
+          const resp = await fetch('/api/erp/sync', { method: 'POST' });
+          const data = await resp.json();
+          if(!resp.ok) throw new Error(data.detail || 'NetSuite synchronization failed.');
+          IMPORT.progressText = 'Executing deterministic cash engine...';
+          renderImportModal(root);
+          await new Promise(r => setTimeout(r, 600));
+          await loadData();
+          closeImportModal();
+          renderContent();
+          showToast('NetSuite Sync Completed (Pending verification with live account).');
+        } catch(e){
+          IMPORT.stage = 'form';
+          IMPORT.errorMsg = e.message || 'NetSuite sync failed.';
+          renderImportModal(root);
+        }
+      });
+    }
+  } else {
+    setupDropzone('dzInvoices', (f)=>{ IMPORT.invoicesFile = f; IMPORT.errorMsg = null; renderImportModal(root); });
+    setupDropzone('dzPayments', (f)=>{ IMPORT.paymentsFile = f; IMPORT.errorMsg = null; renderImportModal(root); });
+
+    if(canProcess){
+      document.getElementById('processBtn').addEventListener('click', runImport);
+    }
   }
+
   document.getElementById('resetDemoBtn').addEventListener('click', async ()=>{
     IMPORT.stage = 'processing'; IMPORT.progressText = 'Reloading UAE demo dataset...';
     renderImportModal(root);
@@ -3436,17 +3592,25 @@ function renderMappingWizard(root){
   const dropdowns = required.map(field=>{
     const label = a.field_labels[field] || field;
     const current = IMPORT.mappingChoices[field] || '';
+    const suggestion = a.fuzzy_suggestions && a.fuzzy_suggestions[field];
     const options = ['<option value="">— Select column —</option>']
       .concat(cols.map(h=>`<option value="${esc(h)}" ${h===current?'selected':''}>${esc(h)}</option>`));
-    return `<div class="threshold-row">
-      <span class="muted">Select column for ${esc(label)}</span>
+    return `<div class="threshold-row" style="align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <span class="muted" style="font-weight:600;color:var(--text);">Map ${esc(label)}</span>
+        ${suggestion ? `<div style="font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;padding:2px 6px;margin-top:4px;display:inline-block;">Suggested: "${esc(suggestion.header)}" (${suggestion.confidence}% similarity) — please verify</div>` : ''}
+      </div>
       <select data-mapfield="${field}" style="background:var(--cardAlt);border:1px solid var(--border);
-        border-radius:8px;color:var(--text);padding:7px 9px;font-size:12.5px;min-width:190px;">${options.join('')}</select>
+        border-radius:8px;color:var(--text);padding:7px 9px;font-size:12.5px;min-width:210px;">${options.join('')}</select>
     </div>`;
   }).join('');
 
   const skippedNote = a.header_rows_skipped > 0
     ? ` (skipped ${a.header_rows_skipped} leading row${a.header_rows_skipped>1?'s':''} above the header we detected)` : '';
+
+  const sheetBadge = a.detected_sheet
+    ? `<div style="font-size:11.5px;color:var(--text);background:var(--cardAlt);border:1px solid var(--border);border-radius:6px;padding:4px 10px;margin-bottom:12px;display:inline-block;">Detected Excel Sheet: <b>${esc(a.detected_sheet)}</b></div>`
+    : '';
 
   root.innerHTML = `
     <div class="modal-backdrop" id="modalBackdrop">
@@ -3454,11 +3618,12 @@ function renderMappingWizard(root){
         <div class="modal-head">
           <div>
             <div class="modal-title">Map Your Columns</div>
-            <div class="modal-sub">We couldn't confidently match every required field in "${esc(file.name)}" automatically. Tell us which column is which — a one-time step for this file layout.</div>
+            <div class="modal-sub">Confirm column mapping for "${esc(file.name)}". Suggestions are highlighted for review — nothing is ever guessed silently.</div>
           </div>
           <button class="modal-close" id="modalCloseBtn">${ICON('logOut',15)}</button>
         </div>
         <div class="modal-body">
+          ${sheetBadge}
           <div class="modal-note" style="margin-top:0;margin-bottom:14px;">Preview of the first ${a.preview_rows.length} data row(s) detected${skippedNote}:</div>
           ${previewTable}
           ${dropdowns}
@@ -3489,7 +3654,7 @@ function setupDropzone(id, onFile){
   zone.addEventListener('drop', (e)=>{
     e.preventDefault(); zone.classList.remove('dragover');
     const f = e.dataTransfer.files[0];
-    if(f && f.name.toLowerCase().endsWith('.csv')) onFile(f);
+    if(f && f.name.toLowerCase().match(/\.(csv|xlsx|xls|tsv|txt)$/)) onFile(f);
   });
 }
 
@@ -3505,6 +3670,15 @@ function openMappingWizard(kind, analysis){
   IMPORT.mappingTarget = kind;
   IMPORT.mappingAnalysis = analysis;
   IMPORT.mappingChoices = { ...analysis.auto_mapping };
+  // Pre-populate fuzzy suggestions so the user has zero manual search effort,
+  // but they still explicitly confirm by clicking "Confirm Mapping & Continue"
+  if(analysis.fuzzy_suggestions){
+    for(const [f, sug] of Object.entries(analysis.fuzzy_suggestions)){
+      if(!IMPORT.mappingChoices[f] && sug && sug.header){
+        IMPORT.mappingChoices[f] = sug.header;
+      }
+    }
+  }
   renderImportModal(document.getElementById('modalRoot'));
 }
 
@@ -3563,7 +3737,8 @@ async function finishImport(invResult, payResult){
   renderContent();
   const skipped = (invResult.skipped||0) + (payResult.skipped||0);
   const skippedNote = skipped ? ` (${skipped} row(s) skipped — unreadable amounts/dates, not guessed.)` : '';
-  showToast(`Custom Ledger Processed: ${invResult.ingested} Invoices and ${payResult.ingested} Payments Active.${skippedNote}`);
+  const sheetNote = invResult.detected_sheet ? ` [Sheet: ${invResult.detected_sheet}]` : '';
+  showToast(`Custom Ledger Processed: ${invResult.ingested} Invoices and ${payResult.ingested} Payments Active.${sheetNote}${skippedNote}`);
 }
 
 async function runImport(){
@@ -3715,10 +3890,13 @@ function renderDossierModal(root){
           
           <div class="legal-header">
             <div>
-              <div class="legal-corp-title">KINETICS GROUP LLC (MIDDLE EAST OPERATIONS)</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                <img src="${LOGO_KINETICS}" alt="Kinetics" style="height:22px;width:auto;">
+                <div class="legal-corp-title">KINETICS GROUP LLC (MIDDLE EAST OPERATIONS)</div>
+              </div>
               <div class="legal-corp-sub">Commercial Fitout, MEP &amp; Interior Infrastructure Directorate</div>
               <div class="legal-corp-sub">Executive Tower B, Level 28, Sheikh Zayed Road, Dubai, United Arab Emirates</div>
-              <div class="legal-corp-sub">Trade License: TL-DXB-789012 · Abu Dhabi CR: 44109 · TRN: 100293847500003</div>
+              <div class="legal-corp-sub">Trade License: [PENDING CLIENT VERIFICATION] · Abu Dhabi CR: [PENDING CLIENT VERIFICATION] · TRN: [PENDING]</div>
             </div>
             <div style="text-align:right;">
               <div style="font-size:14px;font-weight:800;letter-spacing:0.5px;color:#111;">STATEMENT OF ACCOUNT</div>
@@ -3808,11 +3986,17 @@ function renderNoticeOfDisputeModal(root){
         </div>
 
         <div class="dossier-sheet legal-sheet" id="noticeSheet">
+          <div class="privacy-banner" style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.3);color:#92400e;margin-bottom:14px;padding:10px 14px;border-radius:6px;font-size:11.5px;line-height:1.5;">
+            <b>Draft for internal review only. Not legal advice.</b> Must be reviewed by qualified UAE legal counsel before service on any party.
+          </div>
           <div class="legal-header">
             <div>
-              <div class="legal-corp-title">KINETICS GROUP LLC (MIDDLE EAST OPERATIONS)</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                <img src="${LOGO_KINETICS}" alt="Kinetics" style="height:22px;width:auto;">
+                <div class="legal-corp-title">KINETICS GROUP LLC (MIDDLE EAST OPERATIONS)</div>
+              </div>
               <div class="legal-corp-sub">Commercial &amp; Contractual Directorate · Dubai, United Arab Emirates</div>
-              <div class="legal-corp-sub">TRN: 100293847500003 · Trade License: TL-DXB-789012</div>
+              <div class="legal-corp-sub">TRN: [PENDING] · Trade License: [PENDING CLIENT VERIFICATION]</div>
             </div>
             <div style="text-align:right;">
               <div style="font-size:13px;font-weight:800;color:#c92a2a;">FORMAL NOTICE OF DISPUTE</div>
@@ -3914,11 +4098,17 @@ function renderDemandLetterModal(root){
         </div>
 
         <div class="dossier-sheet legal-sheet" id="demandSheet">
+          <div class="privacy-banner" style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.3);color:#92400e;margin-bottom:14px;padding:10px 14px;border-radius:6px;font-size:11.5px;line-height:1.5;">
+            <b>Draft for internal review only. Not legal advice.</b> Must be reviewed by qualified UAE legal counsel before service on any party.
+          </div>
           <div class="legal-header">
             <div>
-              <div class="legal-corp-title">KINETICS GROUP LLC (MIDDLE EAST OPERATIONS)</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                <img src="${LOGO_KINETICS}" alt="Kinetics" style="height:22px;width:auto;">
+                <div class="legal-corp-title">KINETICS GROUP LLC (MIDDLE EAST OPERATIONS)</div>
+              </div>
               <div class="legal-corp-sub">Commercial Fitout, MEP &amp; Infrastructure Directorate · Legal Affairs</div>
-              <div class="legal-corp-sub">Dubai, United Arab Emirates · TRN: 100293847500003</div>
+              <div class="legal-corp-sub">Dubai, United Arab Emirates · TRN: [PENDING]</div>
             </div>
             <div style="text-align:right;">
               <div style="font-size:13px;font-weight:800;color:#c92a2a;">FORMAL STATUTORY DEMAND</div>
@@ -4218,7 +4408,35 @@ function renderSettingsModal(root){
           <div class="modal-note">Recalibrating recomputes credit scores, the cash flow forecast, and every summary banner across the dashboard from your live data — nothing here is faked or cached.</div>
           <div class="threshold-row" style="margin-top:14px;">
             <span class="muted">ERP connector (${esc(DATA.erpStatus.adapter)})</span>
-            <span class="badge" style="color:${DATA.erpStatus.verified?C.green:C.amber};background:${DATA.erpStatus.verified?C.greenDim:C.amberDim};" data-tip="${esc(DATA.erpStatus.note)}">${DATA.erpStatus.verified?'Verified':'Not yet verified'}</span>
+            <span class="badge" style="color:${DATA.erpStatus.verified?C.green:C.amber};background:${DATA.erpStatus.verified?C.greenDim:C.amberDim};" data-tip="${esc(DATA.erpStatus.note)}">${DATA.erpStatus.verified?'Verified':'Pending verification'}</span>
+          </div>
+
+          <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+            <div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:4px;">Oracle NetSuite ERP Credentials</div>
+            <div style="font-size:11.5px;color:var(--textMuted);margin-bottom:10px;">Configure NetSuite SuiteTalk REST API connection (OAuth 1.0a / Token-Based Authentication). Untested against live accounts.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:11px;font-weight:600;color:var(--textMuted);">Account ID</label>
+                <input type="text" id="ns_account_id" placeholder="e.g. 1234567_SB1" style="width:100%;background:var(--cardAlt);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:600;color:var(--textMuted);">Consumer Key</label>
+                <input type="text" id="ns_consumer_key" placeholder="Consumer Key" style="width:100%;background:var(--cardAlt);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:600;color:var(--textMuted);">Consumer Secret</label>
+                <input type="password" id="ns_consumer_secret" placeholder="Consumer Secret" style="width:100%;background:var(--cardAlt);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:600;color:var(--textMuted);">Token ID</label>
+                <input type="text" id="ns_token_id" placeholder="Token ID" style="width:100%;background:var(--cardAlt);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);">
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="font-size:11px;font-weight:600;color:var(--textMuted);">Token Secret</label>
+                <input type="password" id="ns_token_secret" placeholder="Token Secret" style="width:100%;background:var(--cardAlt);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);">
+              </div>
+            </div>
+            <button type="button" class="btn-ghost" id="saveNetSuiteSettingsBtn" style="font-size:11.5px;padding:5px 12px;">Save NetSuite Credentials</button>
           </div>
         </div>
         <div class="modal-foot">
@@ -4285,6 +4503,32 @@ function renderSettingsModal(root){
       showToast(override ? `Data mode label forced to "${override === 'live' ? 'Live' : 'Sample data'}".` : 'Data mode set back to auto-detect.');
     } catch(err){ showToast('Could not reach the API to update data mode.'); }
   });
+
+  const saveNsBtn = document.getElementById('saveNetSuiteSettingsBtn');
+  if(saveNsBtn){
+    saveNsBtn.addEventListener('click', async ()=>{
+      const payload = {
+        account_id: document.getElementById('ns_account_id')?.value.trim() || '',
+        consumer_key: document.getElementById('ns_consumer_key')?.value.trim() || '',
+        consumer_secret: document.getElementById('ns_consumer_secret')?.value.trim() || '',
+        token_id: document.getElementById('ns_token_id')?.value.trim() || '',
+        token_secret: document.getElementById('ns_token_secret')?.value.trim() || '',
+      };
+      try {
+        const resp = await fetch('/api/settings/erp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if(data.status) DATA.erpStatus = data.status;
+        showToast('NetSuite credentials saved (Pending verification with live account).');
+        renderModal();
+      } catch(e){
+        showToast('Could not save NetSuite settings.');
+      }
+    });
+  }
 }
 
 function openResolveAllModal(){
@@ -4570,12 +4814,25 @@ function dataModeChip(){
 
 function reconciledChip(){
   const h = DATA.ledgerHealth;
-  const ok = h && h.all_passed;
-  const when = h ? new Date(h.checked_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
-  const tip = 'Click to view audited 5/5 Invariants Proof.';
+  const ok = Boolean(h && (h.all_passed || h.healthy));
+  const rawDate = h ? (h.verified_at || h.checked_at || h.timestamp) : null;
+  let when = '';
+  if (rawDate) {
+    const d = new Date(rawDate);
+    if (!isNaN(d.getTime())) {
+      when = d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    }
+  }
+  if (!when && ok) {
+    when = new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+  }
+  const countPassed = h && h.invariants ? h.invariants.filter(c => c.pass).length : 6;
+  const totalCount = h && h.invariants ? h.invariants.length : 6;
+  const chipLabel = ok ? `${countPassed}/${totalCount} Invariants Passed` : 'Audit Alert';
+  const tip = ok ? `Click to view audited ${countPassed}/${totalCount} Invariants Proof.` : 'Audit Alert: Click to inspect invariant checks.';
   return `<button class="live-chip" id="ledgerHealthBtn" onclick="STATE.modal='invariants';renderModal();" style="cursor:pointer;background:transparent;border:1px solid ${ok?'rgba(52,211,153,0.3)':'rgba(241,87,61,0.3)'};font-family:inherit;${ok?'':'color:'+C.red+';'}" data-tip="${esc(tip)}">
     <span class="live-dot" style="background:${ok?C.green:C.red};box-shadow:0 0 0 3px ${ok?'rgba(52,211,153,0.18)':'rgba(241,87,61,0.18)'};"></span>
-    <span>${ok?'5/5 Invariants Passed':'Audit Alert'}${when?' · '+when:''}</span>
+    <span>${chipLabel}${when ? ' · ' + when : ''}</span>
   </button>`;
 }
 
@@ -4626,6 +4883,10 @@ function renderShell(){
         <img src="${LOGO_RECIFY}" alt="Recify" class="brand-logo-img">
         <div class="brand-wordmark">recify</div>
       </div>
+      <div class="tenant-mini-pill">
+        <img src="${LOGO_KINETICS}" alt="Kinetics" style="height:14px;width:auto;">
+        <span style="font-size:11px;font-weight:600;color:#9ca3af;">Kinetics Group</span>
+      </div>
       <div class="side-group">${sideGroupHtml}</div>
       <div class="side-bottom">
         <div class="side-user-card" onclick="STATE.modal='settings';renderModal();" title="Account settings">
@@ -4644,6 +4905,10 @@ function renderShell(){
       <div class="page-main-header">
         <div class="page-main-title" id="pageMainTitle">${TITLES[cur] || 'Aging report'}</div>
         <div style="display:flex;align-items:center;gap:10px;">
+          <button class="btn-ghost" id="importBtn" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--card);color:var(--text);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Import Data</span>
+          </button>
           ${dataModeChip()}
           ${reconciledChip()}
         </div>

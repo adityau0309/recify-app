@@ -390,11 +390,29 @@ export function scoreCustomer(invoicesForCustomer, paymentsForCustomer, settings
 
   const total = Math.min(100, Math.max(0, onTimeComponent + lateComponent + exposureComponent));
 
+  let reason = "";
+  if (total >= 80) {
+    reason = "Consistent on-time remittances; minimal credit risk";
+  } else if (total >= 60) {
+    reason = "Generally reliable; minor settlement latency";
+  } else if (total >= 40) {
+    reason = `Moderate latency (avg ${Math.round(avgDaysLate)}d late); ongoing exposure`;
+  } else {
+    reason = `High latency (avg ${Math.round(avgDaysLate)}d late); elevated open exposure`;
+  }
+
   return {
     total,
+    reason,
     on_time_component: onTimeComponent,
     late_component: lateComponent,
     exposure_component: exposureComponent,
+    on_time_points: onTimeComponent,
+    on_time_max: s.on_time_weight,
+    late_points: lateComponent,
+    late_max: s.late_weight,
+    exposure_points: exposureComponent,
+    exposure_max: s.exposure_weight,
     on_time_pct: Math.round(onTimePct * 100),
     avg_days_late: Math.round(avgDaysLate),
     open_balance: Math.round(openBalance * 100) / 100
@@ -534,6 +552,7 @@ export function runInvariantChecks(overview, buckets, scores, invoices, ledgerMe
 
   const scoresTotal = Math.round(scores.reduce((s, c) => s + (c.open_balance || 0), 0) * 100) / 100;
   const scoresMatch = Math.abs(scoresTotal - overviewTotal) < 0.05;
+  const overviewAgingMatch = Math.abs(overviewTotal - agingTotal) < 0.05;
 
   return [
     {
@@ -570,6 +589,13 @@ export function runInvariantChecks(overview, buckets, scores, invoices, ledgerMe
       rule: "Sum of customer scorecard open balances exactly equals total portfolio net outstanding AR.",
       pass: scoresMatch,
       detail: `Customer balances sum: AED ${fmtMoney(scoresTotal)}, Portfolio AR: AED ${fmtMoney(overviewTotal)}`
+    },
+    {
+      id: 6,
+      title: "Overview vs Aging Ledger Alignment",
+      rule: "Overview total outstanding AR and overdue balance must match the Reconciled Aging Report exactly.",
+      pass: overviewAgingMatch,
+      detail: `Overview AR: AED ${fmtMoney(overviewTotal)}, Aging AR: AED ${fmtMoney(agingTotal)} (Diff: AED ${fmtMoney(Math.abs(overviewTotal - agingTotal))})`
     }
   ];
 }

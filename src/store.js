@@ -20,6 +20,13 @@ class LedgerStore {
     this.retentionRecords = new Map();
     this.pdcRecords = new Map();
     this.apLiabilities = new Map();
+    this.erpSettings = {
+      account_id: process.env.NETSUITE_ACCOUNT_ID || "",
+      consumer_key: process.env.NETSUITE_CONSUMER_KEY || "",
+      consumer_secret: process.env.NETSUITE_CONSUMER_SECRET || "",
+      token_id: process.env.NETSUITE_TOKEN_ID || "",
+      token_secret: process.env.NETSUITE_TOKEN_SECRET || ""
+    };
   }
 
   reset() {

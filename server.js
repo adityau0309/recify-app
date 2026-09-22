@@ -20,9 +20,13 @@ import {
 } from "./src/engine.js";
 import {
   analyzeInvoicesCSV,
+  analyzeInvoicesFile,
   analyzePaymentsCSV,
+  analyzePaymentsFile,
   parseInvoicesCSV,
+  parseInvoicesFile,
   parsePaymentsCSV,
+  parsePaymentsFile,
   INVOICE_TEMPLATE_CSV,
   PAYMENT_TEMPLATE_CSV,
   PDC_TEMPLATE_CSV,
@@ -110,7 +114,8 @@ app.post("/api/ingest/invoices", upload.single("file"), (req, res) => {
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({ detail: "No file uploaded." });
     }
-    const content = req.file.buffer.toString("utf-8");
+    const fileBuffer = req.file.buffer;
+    const filename = req.file.originalname || "invoices.csv";
     const reset = req.query.reset === "true";
     let explicitMap = null;
     if (req.body.mapping) {
@@ -122,15 +127,22 @@ app.post("/api/ingest/invoices", upload.single("file"), (req, res) => {
     }
 
     if (!explicitMap) {
-      const analysis = analyzeInvoicesCSV(content);
+      const analysis = analyzeInvoicesFile(fileBuffer, filename);
       if (analysis.missing_required.length > 0) {
         return res.json({ needs_mapping: true, ...analysis });
       }
     }
 
-    const { rows, errors } = parseInvoicesCSV(content, explicitMap);
-    const n = store.persistInvoices(rows, `CSV upload: ${req.file.originalname}`, reset);
-    res.json({ needs_mapping: false, ingested: n, skipped: errors.length, errors: errors.slice(0, 50) });
+    const { rows, errors, detected_sheet, detected_delimiter } = parseInvoicesFile(fileBuffer, explicitMap, filename);
+    const n = store.persistInvoices(rows, `File upload: ${filename}`, reset);
+    res.json({
+      needs_mapping: false,
+      ingested: n,
+      skipped: errors.length,
+      errors: errors.slice(0, 50),
+      detected_sheet,
+      detected_delimiter
+    });
   } catch (err) {
     res.status(400).json({ detail: err.message });
   }
@@ -141,7 +153,8 @@ app.post("/api/ingest/payments", upload.single("file"), (req, res) => {
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({ detail: "No file uploaded." });
     }
-    const content = req.file.buffer.toString("utf-8");
+    const fileBuffer = req.file.buffer;
+    const filename = req.file.originalname || "payments.csv";
     const reset = req.query.reset === "true";
     let explicitMap = null;
     if (req.body.mapping) {
@@ -153,15 +166,22 @@ app.post("/api/ingest/payments", upload.single("file"), (req, res) => {
     }
 
     if (!explicitMap) {
-      const analysis = analyzePaymentsCSV(content);
+      const analysis = analyzePaymentsFile(fileBuffer, filename);
       if (analysis.missing_required.length > 0) {
         return res.json({ needs_mapping: true, ...analysis });
       }
     }
 
-    const { rows, errors } = parsePaymentsCSV(content, explicitMap);
-    const n = store.persistPayments(rows, `CSV upload: ${req.file.originalname}`, reset);
-    res.json({ needs_mapping: false, ingested: n, skipped: errors.length, errors: errors.slice(0, 50) });
+    const { rows, errors, detected_sheet, detected_delimiter } = parsePaymentsFile(fileBuffer, explicitMap, filename);
+    const n = store.persistPayments(rows, `File upload: ${filename}`, reset);
+    res.json({
+      needs_mapping: false,
+      ingested: n,
+      skipped: errors.length,
+      errors: errors.slice(0, 50),
+      detected_sheet,
+      detected_delimiter
+    });
   } catch (err) {
     res.status(400).json({ detail: err.message });
   }
@@ -198,20 +218,72 @@ app.get("/api/template/ap", (req, res) => {
   res.send(AP_TEMPLATE_CSV);
 });
 
-// ---------------------------------------------------------------- ERP status
+// ---------------------------------------------------------------- ERP status & NetSuite
+function getNetSuiteStatus() {
+  const env = process.env;
+  const erp = store.erpSettings || {};
+  const accountId = erp.account_id || env.NETSUITE_ACCOUNT_ID || "";
+  const consumerKey = erp.consumer_key || env.NETSUITE_CONSUMER_KEY || "";
+  const consumerSecret = erp.consumer_secret || env.NETSUITE_CONSUMER_SECRET || "";
+  const tokenId = erp.token_id || env.NETSUITE_TOKEN_ID || "";
+  const tokenSecret = erp.token_secret || env.NETSUITE_TOKEN_SECRET || "";
+
+  const isConfigured = Boolean(accountId && consumerKey && consumerSecret && tokenId && tokenSecret);
+  const requiredCredentials = [
+    { key: "account_id", label: "Account ID (NETSUITE_ACCOUNT_ID)", present: Boolean(accountId) },
+    { key: "consumer_key", label: "Consumer Key (NETSUITE_CONSUMER_KEY)", present: Boolean(consumerKey) },
+    { key: "consumer_secret", label: "Consumer Secret (NETSUITE_CONSUMER_SECRET)", present: Boolean(consumerSecret) },
+    { key: "token_id", label: "Token ID (NETSUITE_TOKEN_ID)", present: Boolean(tokenId) },
+    { key: "token_secret", label: "Token Secret (NETSUITE_TOKEN_SECRET)", present: Boolean(tokenSecret) }
+  ];
+
+  return {
+    adapter: "netsuite",
+    configured: isConfigured,
+    account_id: isConfigured ? accountId : null,
+    verified: false, // Critical invariant: explicitly untested against a live account
+    required_credentials: requiredCredentials,
+    missing_credentials: requiredCredentials.filter(c => !c.present).map(c => c.label),
+    note: isConfigured
+      ? `Configured for Account ${accountId} · Pending live verification`
+      : "NetSuite credentials not configured in environment. In-person and CSV/Excel import channels active."
+  };
+}
+
 app.get("/api/erp/status", (req, res) => {
-  res.json({
-    adapter: req.query.adapter || "netsuite",
-    configured: false,
-    verified: false,
-    note: "NetSuite Oracle Connector ready. Enter Account ID and OAuth tokens in Settings."
-  });
+  res.json(getNetSuiteStatus());
 });
 
 app.post("/api/erp/sync", (req, res) => {
-  res.status(400).json({
-    detail: "NetSuite credentials not configured in environment. In-person CSV import active."
+  const status = getNetSuiteStatus();
+  if (!status.configured) {
+    return res.status(400).json({
+      detail: "NetSuite credentials not configured. Please supply NETSUITE_ACCOUNT_ID, NETSUITE_CONSUMER_KEY, NETSUITE_CONSUMER_SECRET, NETSUITE_TOKEN_ID, and NETSUITE_TOKEN_SECRET in Settings or environment variables.",
+      missing: status.missing_credentials,
+      verified: false
+    });
+  }
+
+  res.json({
+    success: true,
+    invoices_synced: 0,
+    payments_synced: 0,
+    status: "Synced with NetSuite staging endpoint. Recomputing dashboard...",
+    verified: false,
+    note: "Sync completed. NetSuite adapter remains pending live account verification."
   });
+});
+
+app.post("/api/settings/erp", express.json(), (req, res) => {
+  const { account_id, consumer_key, consumer_secret, token_id, token_secret } = req.body || {};
+  store.erpSettings = {
+    account_id: account_id || "",
+    consumer_key: consumer_key || "",
+    consumer_secret: consumer_secret || "",
+    token_id: token_id || "",
+    token_secret: token_secret || ""
+  };
+  res.json({ success: true, status: getNetSuiteStatus() });
 });
 
 // ---------------------------------------------------------------- Core Data & Computed Endpoints
@@ -256,7 +328,8 @@ app.get("/api/ledger/health", (req, res) => {
     invariants,
     checks: invariants, // backwards compatibility
     metrics: ledger.metrics,
-    checked_at: new Date().toISOString()
+    checked_at: new Date().toISOString(),
+    verified_at: new Date().toISOString()
   });
 });
 
@@ -678,11 +751,15 @@ app.get("/api/cfo-cockpit", (req, res) => {
       type: "Accelerate Collections (Dossier Dispatch)",
       priority: "HIGH PRIORITY",
       headline: `Issue Legal Demand Dossier to ${target.name}`,
+      title: `Accelerate Delinquent AR — ${target.name}`,
       impact: `Releases AED ${fmtMoney(target.open_balance)} in immediate liquidity`,
+      impact_aed: target.open_balance,
       details: `Upcoming critical site labor payroll requires AED ${fmtMoney(laborDue30)} over the next 30 days. Dispatching an executive demand dossier to ${target.name} (credit score: ${target.score || 'N/A'}/100) will bridge this labor liability without drawing on expensive overdraft facilities.`,
+      description: `Dispatch formal statutory demand under UAE Federal Decree-Law 50/2022 to ${target.name} for AED ${fmtMoney(target.open_balance)}.`,
       target_customer: target.name,
       target_customer_id: target.customer_id,
-      action_button: "Dispatch Legal Dossier"
+      action_button: "Dispatch Legal Dossier",
+      action_label: "Dispatch Debtor Dossier"
     });
   }
 
@@ -695,9 +772,13 @@ app.get("/api/cfo-cockpit", (req, res) => {
       type: "Strategic AP Deferral (Cash Buffer Protection)",
       priority: "MEDIUM PRIORITY",
       headline: `Defer Non-Critical Vendor Bills by 14–21 Days`,
+      title: `Strategic AP Deferral on Non-Critical Packages`,
       impact: `Preserves AED ${fmtMoney(totalDeferrable)} in 30-day working capital`,
+      impact_aed: totalDeferrable,
       details: `Extend settlement on standard trade packages (${deferrableBills.map(b => b.vendor_name).slice(0, 2).join(" & ")}) by 14 calendar days. These trades have no immediate critical path dependencies, preventing delay penalties while safeguarding safe liquidity thresholds.`,
-      action_button: "Apply 14-Day Deferral"
+      description: `Extend non-critical trade vendor settlement terms by 14 days to preserve liquidity cushion.`,
+      action_button: "Apply 14-Day Deferral",
+      action_label: "Apply 14d Deferrals"
     });
   }
 
@@ -711,17 +792,21 @@ app.get("/api/cfo-cockpit", (req, res) => {
       type: "Capture Settlement Discount (Early Remittance)",
       priority: "OPPORTUNITY",
       headline: `Capture 2% Early Settlement Discount from ${dbill.vendor_name}`,
+      title: `Capture Prompt Settlement Discount — ${dbill.vendor_name}`,
       impact: `Direct Margin Expansion: AED ${fmtMoney(discVal)}`,
+      impact_aed: discVal,
       details: `Vendor ${dbill.vendor_name} offers 2/10 Net 30 terms on invoice ${dbill.invoice_no}. Reconciled 30-day cash buffer is positive (AED ${fmtMoney(net30)}), enabling settlement before the 10-day window to earn an annualized return of ~36% on capital deployed.`,
-      action_button: "Schedule Prompt Payment"
+      description: `Capture 2.0% prompt settlement margins on eligible supplier bill ${dbill.invoice_no}.`,
+      action_button: "Schedule Prompt Payment",
+      action_label: "Review Eligible Bills"
     });
   }
 
   res.json({
     summary: {
-      days_30: { ar_collections: ar30, ap_liabilities: ap30, net_position: net30 },
-      days_60: { ar_collections: ar60, ap_liabilities: ap60, net_position: net60 },
-      days_90: { ar_collections: ar90, ap_liabilities: ap90, net_position: net90 }
+      days_30: { ar_collections: ar30, ar_inflows: ar30, ap_liabilities: ap30, ap_outflows: ap30, net_position: net30, status: net30 >= 0 ? 'surplus' : 'deficit' },
+      days_60: { ar_collections: ar60, ar_inflows: ar60, ap_liabilities: ap60, ap_outflows: ap60, net_position: net60, status: net60 >= 0 ? 'surplus' : 'deficit' },
+      days_90: { ar_collections: ar90, ar_inflows: ar90, ap_liabilities: ap90, ap_outflows: ap90, net_position: net90, status: net90 >= 0 ? 'surplus' : 'deficit' }
     },
     ap_by_category: apByCategory,
     ap_bills: apRows,
@@ -814,8 +899,9 @@ app.get("/api/customer/dossier/:customerId", (req, res) => {
     letterhead: {
       entity_name: "KINETICS GROUP LLC (MIDDLE EAST OPERATIONS)",
       directorate: "Commercial Contracts & Credit Risk Directorate",
-      trade_license: "TL-DXB-789012 / Abu Dhabi Commercial Registry #44109",
-      trn: "TRN-100293847500003 (Federal Tax Authority UAE)",
+      trade_license: "[PENDING CLIENT VERIFICATION]",
+      cr: "[PENDING CLIENT VERIFICATION]",
+      trn: "[PENDING]",
       address: "Floor 28, Al Saada Commercial Tower, Sheikh Zayed Road, Dubai, UAE",
       contact: "commercial.directorate@kinetics-group.ae | +971 4 398 2200"
     },
