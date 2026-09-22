@@ -707,14 +707,31 @@
 
   /* modal */
   .modal-backdrop{
-    position:fixed; inset:0; background:rgba(3,6,12,0.75); backdrop-filter:blur(3px);
+    position:fixed; inset:0; background:rgba(3,6,12,0.75); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
     z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .12s ease;
   }
   @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
   .modal-panel{
     background:#0c1424; border:1px solid var(--borderAccent); border-radius:var(--radius-lg); width:100%; max-width:580px;
-    max-height:88vh; overflow-y:auto; box-shadow:0 24px 60px rgba(0,0,0,0.7); position:relative;
+    max-height:88vh; overflow-y:auto; box-shadow:0 24px 60px rgba(0,0,0,0.7); position:relative; z-index:211;
+    backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
   }
+  .modal-panel table.data{width:100%; border-collapse:collapse;}
+  .modal-panel table.data th{
+    background:#111b2e; color:#94a3b8; border-top:1px solid #1e293b; border-bottom:1px solid #1e293b;
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; padding:10px 12px;
+  }
+  .modal-panel table.data td{
+    background:transparent; color:#e2e8f0; border-bottom:1px solid #162032; padding:11px 12px;
+    font-size:12px; vertical-align:middle;
+  }
+  .modal-panel table.data tr:nth-child(even) td{background:rgba(255,255,255,0.02);}
+  .modal-panel table.data tr:hover td{background:rgba(37,99,235,0.08);}
+  .modal-panel .btn-ghost{
+    background:#162238; color:#e2e8f0; border:1px solid #233554; border-radius:var(--radius-sm);
+    padding:5px 12px; font-size:11.5px; font-weight:600; white-space:nowrap;
+  }
+  .modal-panel .btn-ghost:hover{background:#1e2e4a; color:#ffffff; border-color:#3b82f6;}
   .modal-head{display:flex; align-items:flex-start; justify-content:space-between; padding:18px 20px 12px; border-bottom:1px solid var(--border);}
   .modal-title{font-size:15px; font-weight:700; color:#fff;}
   .modal-sub{font-size:11.5px; color:var(--textMuted); margin-top:3px; line-height:1.45;}
@@ -4544,78 +4561,81 @@ function openActionModal(category){
 
 function renderResolveAllModal(root){
   root.innerHTML = `
-    <div class="modal-backdrop" onclick="STATE.modal=null;renderModal();"></div>
-    <div class="modal-panel" style="max-width:720px;">
-      <div class="modal-head">
-        <div>
-          <div class="modal-title">Resolve Blocked Receivables (AED 2,845,167)</div>
-          <div class="modal-sub">Bulk review and human authorization for pending Recify collection workflows</div>
-        </div>
-        <button class="modal-close" onclick="STATE.modal=null;renderModal();">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="insight-banner warn" style="margin-bottom:16px;">
-          <div class="ico">${ICON('alertTriangle',16)}</div>
+    <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this){STATE.modal=null;renderModal();}">
+      <div class="modal-panel" style="max-width:760px;background:#0c1424;border:1px solid var(--borderAccent);box-shadow:0 24px 60px rgba(0,0,0,0.85);position:relative;z-index:211;backdrop-filter:none;-webkit-backdrop-filter:none;" onclick="event.stopPropagation();">
+        <div class="modal-head" style="border-bottom:1px solid #1e293b;">
           <div>
-            <span class="tag">6 CATEGORIES REQUIRING OPERATIONAL DECISION</span>
-            <div style="font-size:12px;color:var(--text);line-height:1.45;">
-              Recify pauses active recovery on items flagged with disputes, missing documentation, or unapplied payments to ensure FIDIC compliance and counterparty accuracy.
+            <div class="modal-title" style="color:#ffffff;font-size:15.5px;font-weight:700;">Resolve Blocked Receivables (AED 2,845,167)</div>
+            <div class="modal-sub" style="color:#94a3b8;font-size:12px;margin-top:4px;">Bulk review and human authorization for pending Recify collection workflows</div>
+          </div>
+          <button class="modal-close" style="color:#94a3b8;font-size:16px;" onclick="STATE.modal=null;renderModal();">✕</button>
+        </div>
+        <div class="modal-body" style="padding:18px 20px;">
+          <div class="insight-banner warn" style="margin-bottom:16px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;">
+            <div class="ico" style="color:#f59e0b;">${ICON('alertTriangle',16)}</div>
+            <div>
+              <span class="tag" style="background:#f59e0b;color:#000;font-weight:700;font-size:10px;padding:2px 6px;border-radius:4px;">6 CATEGORIES REQUIRING OPERATIONAL DECISION</span>
+              <div style="font-size:12px;color:#e2e8f0;line-height:1.45;margin-top:4px;">
+                Recify pauses active recovery on items flagged with disputes, missing documentation, or unapplied payments to ensure FIDIC compliance and counterparty accuracy.
+              </div>
             </div>
           </div>
-        </div>
 
-        <table class="data" style="margin-bottom:16px;">
-          <thead>
-            <tr>
-              <th>Action Category</th>
-              <th>Blocked Amount</th>
-              <th>Accounts</th>
-              <th>Default Resolution</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><b>Missing Documentation / PO</b></td>
-              <td class="num">AED 330,952</td>
-              <td>4 Customers</td>
-              <td>Request missing PO from procurement contact</td>
-            </tr>
-            <tr>
-              <td><b>Commercial Disputes &amp; Deductions</b></td>
-              <td class="num" style="color:var(--red);">AED 1,225,226</td>
-              <td>7 Customers</td>
-              <td>Issue Engineer's Determination notice under Sub-Clause 14.6</td>
-            </tr>
-            <tr>
-              <td><b>Management Sign-Off Required</b></td>
-              <td class="num">AED 514,763</td>
-              <td>3 Customers</td>
-              <td>Approve legal escalation &amp; formal payment demand</td>
-            </tr>
-            <tr>
-              <td><b>Bounced / Invalid Contact Details</b></td>
-              <td class="num">AED 442,375</td>
-              <td>11 Customers</td>
-              <td>Escalate to AP Finance Director &amp; Commercial Head</td>
-            </tr>
-            <tr>
-              <td><b>Unallocated Bank Remittances</b></td>
-              <td class="num" style="color:var(--green);">AED 222,406</td>
-              <td>7 Customers</td>
-              <td>Auto-apply remittances using AI invoice ledger matcher</td>
-            </tr>
-            <tr>
-              <td><b>Uncategorized / Miscellaneous</b></td>
-              <td class="num">AED 109,446</td>
-              <td>1 Customer</td>
-              <td>Manual audit assignment to credit controller</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-ghost" onclick="STATE.modal=null;renderModal();">Cancel</button>
-        <button class="btn-primary" onclick="STATE.modal=null;renderModal();showToast('All 6 blocked categories authorized. Workflows queued in Recify.');">Authorize All 6 Actions</button>
+          <div style="overflow-x:auto;">
+            <table class="data" style="margin-bottom:16px;width:100%;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:10px 12px;min-width:180px;">Action Category</th>
+                  <th style="text-align:right;padding:10px 12px;min-width:110px;">Blocked Amount</th>
+                  <th style="text-align:left;padding:10px 12px;min-width:110px;">Accounts</th>
+                  <th style="text-align:left;padding:10px 12px;min-width:240px;">Default Resolution</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding:11px 12px;"><b style="color:#ffffff;">Missing Documentation / PO</b></td>
+                  <td class="num" style="text-align:right;font-weight:700;color:#ffffff;padding:11px 12px;">AED 330,952</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">4 Customers</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">Request missing PO from procurement contact</td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 12px;"><b style="color:#ffffff;">Commercial Disputes &amp; Deductions</b></td>
+                  <td class="num" style="text-align:right;font-weight:700;color:var(--red);padding:11px 12px;">AED 1,225,226</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">7 Customers</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">Issue Engineer's Determination notice under Sub-Clause 14.6</td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 12px;"><b style="color:#ffffff;">Management Sign-Off Required</b></td>
+                  <td class="num" style="text-align:right;font-weight:700;color:#ffffff;padding:11px 12px;">AED 514,763</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">3 Customers</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">Approve legal escalation &amp; formal payment demand</td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 12px;"><b style="color:#ffffff;">Bounced / Invalid Contact Details</b></td>
+                  <td class="num" style="text-align:right;font-weight:700;color:#ffffff;padding:11px 12px;">AED 442,375</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">11 Customers</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">Escalate to AP Finance Director &amp; Commercial Head</td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 12px;"><b style="color:#ffffff;">Unallocated Bank Remittances</b></td>
+                  <td class="num" style="text-align:right;font-weight:700;color:var(--green);padding:11px 12px;">AED 222,406</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">7 Customers</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">Auto-apply remittances using AI invoice ledger matcher</td>
+                </tr>
+                <tr>
+                  <td style="padding:11px 12px;"><b style="color:#ffffff;">Uncategorized / Miscellaneous</b></td>
+                  <td class="num" style="text-align:right;font-weight:700;color:#ffffff;padding:11px 12px;">AED 109,446</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">1 Customer</td>
+                  <td style="padding:11px 12px;color:#94a3b8;">Manual audit assignment to credit controller</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-foot" style="border-top:1px solid #1e293b;padding:14px 20px;">
+          <button class="btn-ghost" onclick="STATE.modal=null;renderModal();">Cancel</button>
+          <button class="btn-primary" onclick="STATE.modal=null;renderModal();showToast('All 6 blocked categories authorized. Workflows queued in Recify.');">Authorize All 6 Actions</button>
+        </div>
       </div>
     </div>
   `;
@@ -4687,44 +4707,47 @@ function renderActionCategoryModal(root){
   }[cat] || {title:'Action Review', amount:'', desc:'', items:[]};
 
   root.innerHTML = `
-    <div class="modal-backdrop" onclick="STATE.modal=null;renderModal();"></div>
-    <div class="modal-panel" style="max-width:760px;">
-      <div class="modal-head">
-        <div>
-          <div class="modal-title">${meta.title} (${meta.amount})</div>
-          <div class="modal-sub">${meta.desc}</div>
+    <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this){STATE.modal=null;renderModal();}">
+      <div class="modal-panel" style="max-width:820px;background:#0c1424;border:1px solid var(--borderAccent);box-shadow:0 24px 60px rgba(0,0,0,0.85);position:relative;z-index:211;backdrop-filter:none;-webkit-backdrop-filter:none;" onclick="event.stopPropagation();">
+        <div class="modal-head" style="border-bottom:1px solid #1e293b;">
+          <div>
+            <div class="modal-title" style="color:#ffffff;font-size:15.5px;font-weight:700;">${esc(meta.title)} <span style="font-size:13.5px;color:#93c5fd;font-family:'JetBrains Mono',monospace;font-weight:600;margin-left:6px;">(${esc(meta.amount)})</span></div>
+            <div class="modal-sub" style="color:#94a3b8;font-size:12px;margin-top:4px;line-height:1.45;">${esc(meta.desc)}</div>
+          </div>
+          <button class="modal-close" style="color:#94a3b8;font-size:16px;" onclick="STATE.modal=null;renderModal();">✕</button>
         </div>
-        <button class="modal-close" onclick="STATE.modal=null;renderModal();">✕</button>
-      </div>
-      <div class="modal-body">
-        <table class="data">
-          <thead>
-            <tr>
-              <th>Counterparty</th>
-              <th>Reference</th>
-              <th>Amount</th>
-              <th>Block Details</th>
-              <th style="text-align:right;">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${meta.items.map(it => `
-              <tr>
-                <td><b>${it.customer}</b></td>
-                <td><code style="font-size:11px;">${it.inv}</code></td>
-                <td class="num">${money(it.amt)}</td>
-                <td style="font-size:11.5px;color:var(--textMuted);">${it.issue}</td>
-                <td style="text-align:right;">
-                  <button class="btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="STATE.modal=null;renderModal();showToast('Action taken on ${it.inv}. Workflow updated in Recify.');">Resolve</button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-ghost" onclick="STATE.modal=null;renderModal();">Close</button>
-        <button class="btn-primary" onclick="STATE.modal=null;renderModal();showToast('All items in ${meta.title} updated successfully.');">Batch Resolve Category</button>
+        <div class="modal-body" style="padding:18px 20px;">
+          <div style="overflow-x:auto;">
+            <table class="data" style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;min-width:170px;padding:10px 12px;">Counterparty</th>
+                  <th style="text-align:left;min-width:120px;padding:10px 12px;white-space:nowrap;">Reference</th>
+                  <th style="text-align:right;min-width:110px;padding:10px 12px;white-space:nowrap;">Amount</th>
+                  <th style="text-align:left;min-width:240px;padding:10px 12px;">Documentation Needed</th>
+                  <th style="text-align:right;min-width:95px;padding:10px 12px;white-space:nowrap;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${meta.items.map(it => `
+                  <tr>
+                    <td style="padding:11px 12px;"><b style="color:#ffffff;font-size:12.5px;">${esc(it.customer)}</b></td>
+                    <td style="padding:11px 12px;"><code style="font-size:11.5px;color:#93c5fd;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.25);border-radius:4px;padding:2px 7px;font-family:'JetBrains Mono',monospace;display:inline-block;white-space:nowrap;">${esc(it.inv)}</code></td>
+                    <td class="num" style="text-align:right;font-weight:700;color:#ffffff;font-family:'JetBrains Mono',monospace;white-space:nowrap;padding:11px 12px;">${money(it.amt)}</td>
+                    <td style="font-size:12px;color:#94a3b8;line-height:1.45;padding:11px 12px;">${esc(it.issue)}</td>
+                    <td style="text-align:right;white-space:nowrap;padding:11px 12px;">
+                      <button class="btn-ghost" style="padding:5px 12px;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;" onclick="STATE.modal=null;renderModal();showToast('Action taken on ${esc(it.inv)}. Workflow updated in Recify.');">Resolve</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-foot" style="border-top:1px solid #1e293b;padding:14px 20px;display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn-ghost" style="padding:7px 14px;font-size:12px;" onclick="STATE.modal=null;renderModal();">Close</button>
+          <button class="btn-primary" style="padding:7px 16px;font-size:12px;" onclick="STATE.modal=null;renderModal();showToast('All items in ${esc(meta.title)} updated successfully.');">Batch Resolve Category</button>
+        </div>
       </div>
     </div>
   `;
