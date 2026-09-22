@@ -419,8 +419,9 @@ def get_retention():
     ledger = _get_reconciled_ledger()
     rows = []
     for inv in ledger["invoices"]:
-        if inv["amount"] > 100000:
-            amt = round(inv["amount"] * 0.05, 2)
+        base_amt = inv.get("gross_amount") or inv.get("amount") or 0.0
+        if base_amt > 100000:
+            amt = round(base_amt * 0.05, 2)
             rows.append({
                 "invoice_id": inv["id"],
                 "customer_name": inv["customer_name"],
@@ -437,18 +438,24 @@ def get_retention():
 def get_ipc_variance():
     ledger = _get_reconciled_ledger()
     rows = []
-    for inv in ledger["invoices"][:6]:
-        claimed = round(inv["amount"] * 1.05, 2)
-        certified = inv["amount"]
-        var = certified - claimed
+    for inv in ledger["invoices"]:
+        base_amt = inv.get("gross_amount") or inv.get("amount") or 0.0
+        if base_amt <= 0:
+            continue
+        claimed = round(base_amt * 1.05, 2)
+        certified = base_amt
+        var = round(certified - claimed, 2)
+        var_pct = round((var / claimed) * 100) if claimed > 0 else 0
         rows.append({
             "invoice_id": inv["id"],
             "customer_name": inv["customer_name"],
             "claimed": claimed,
             "certified": certified,
             "variance": var,
-            "variance_pct": round((var / claimed) * 100),
+            "variance_pct": var_pct,
         })
+        if len(rows) >= 6:
+            break
     return {"rows": rows, "data_mode": _current_data_mode()}
 
 
