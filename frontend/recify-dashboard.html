@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <title>Recify AR Engine</title>
 <meta name="description" content="UAE & GCC Commercial Contracting Working Capital & Dispute Command Center for Kinetics Group LLC. Features FIDIC Sub-Clause 14.6 IPC tracking, Dual-Tranche Retention Release, PDC liquidity registry, and AP/AR CFO Cash Cockpit." />
 <meta property="og:title" content="Recify AR Engine" />
@@ -1004,6 +1004,242 @@
     #dossierSheet, .printable-sheet{position:absolute;top:0;left:0;width:100% !important;margin:0 !important;border-radius:0 !important;padding:12mm !important;background:#ffffff !important;color:#111318 !important;}
     .no-print{display:none !important;}
     @page{size:A4;margin:10mm;}
+  }
+
+  /* Mobile drawer and topbar hidden on desktop (> 768px) */
+  .mobile-topbar, .mobile-drawer-backdrop { display: none; }
+
+  /* ==================== Mobile Responsiveness (<= 768px) ==================== */
+  @media (max-width: 768px) {
+    /* 2. Mobile App Shell & Layout */
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+    }
+    #app, .dashboard-layout {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+      min-height: 100vh !important;
+      position: relative !important;
+    }
+    .shell {
+      width: 100% !important;
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+      height: auto !important;
+      min-height: 0 !important;
+      flex: 1 !important;
+    }
+    main, .main-content, #content, .content {
+      width: 100% !important;
+      max-width: 100vw !important;
+      padding: 12px !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+    .page-main-header {
+      padding: 14px 12px 10px !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+    }
+    .page-main-header > div:last-child {
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+    .aging-view-container {
+      padding: 0 0 20px !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .aging-summary-card {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 16px !important;
+      padding: 14px 16px !important;
+    }
+    .aging-summary-cols {
+      flex-wrap: wrap !important;
+      gap: 14px 20px !important;
+      width: 100% !important;
+      justify-content: space-between !important;
+    }
+    .aging-summary-col {
+      text-align: left !important;
+      min-width: 75px !important;
+    }
+
+    /* 3. Responsive Collapsible Sidebar (Drawer / Hamburger Pattern) */
+    aside, .sidebar, #sidebar {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      bottom: 0 !important;
+      width: 280px !important;
+      max-width: 80vw !important;
+      height: 100% !important;
+      height: 100dvh !important;
+      z-index: 1050 !important;
+      transform: translateX(-100%) !important;
+      transition: transform 0.25s ease-in-out !important;
+      box-sizing: border-box !important;
+      overflow-y: auto !important;
+      box-shadow: none !important;
+    }
+    aside.sidebar-open, aside.active,
+    .sidebar.sidebar-open, .sidebar.active,
+    #sidebar.sidebar-open, #sidebar.active {
+      transform: translateX(0) !important;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.6) !important;
+    }
+    .mobile-topbar {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      height: 56px !important;
+      padding: 0 16px !important;
+      background: #0e1526 !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+      position: sticky !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      z-index: 100 !important;
+      box-sizing: border-box !important;
+    }
+    .mobile-topbar-brand {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+    .mobile-logo-recify {
+      height: 22px !important;
+      width: auto !important;
+      display: block !important;
+      flex-shrink: 0 !important;
+    }
+    .mobile-brand-wordmark {
+      font-size: 18px !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.03em !important;
+      color: #ffffff !important;
+      line-height: 1 !important;
+    }
+    .mobile-brand-divider {
+      color: #4b5563 !important;
+      font-size: 14px !important;
+      margin: 0 2px !important;
+    }
+    .mobile-logo-kinetics {
+      height: 12px !important;
+      width: auto !important;
+      display: block !important;
+      flex-shrink: 0 !important;
+    }
+    .mobile-tenant-title {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: #9ca3af !important;
+    }
+    .mobile-hamburger-btn {
+      background: transparent !important;
+      border: none !important;
+      color: #ffffff !important;
+      cursor: pointer !important;
+      padding: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 6px !important;
+      transition: background 0.15s ease !important;
+      line-height: 1 !important;
+    }
+    .mobile-hamburger-btn:hover, .mobile-hamburger-btn:active {
+      background: rgba(255, 255, 255, 0.08) !important;
+    }
+    .mobile-drawer-backdrop {
+      display: none;
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(0, 0, 0, 0.65) !important;
+      backdrop-filter: blur(2px) !important;
+      -webkit-backdrop-filter: blur(2px) !important;
+      z-index: 1040 !important;
+      transition: opacity 0.25s ease !important;
+    }
+    .mobile-drawer-backdrop.active, .mobile-drawer-backdrop.open {
+      display: block !important;
+    }
+
+    /* 4. Responsive Cards, Tables, and Elements */
+    .kpi-grid, .grid-cols-4, .grid-cols-3, .grid-cols-2,
+    .row-3, .row-2, .value-grid, .kpi-strip, .kpi-grid-5,
+    .csr-cols, .needs-input-grid, .connector-grid, .dossier-kpis,
+    .dossier-locked-grid, .spread-grid, .presc-grid, .sim-slider-row,
+    .runway-legend, .action-deck, .chart-grid, .treemap-grid, .filter-bucket-grid {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+    }
+    .customer-status-card {
+      flex-direction: column !important;
+      gap: 16px !important;
+    }
+    .aging-controls {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+    }
+    .aging-search-input-wrap {
+      width: 100% !important;
+    }
+
+    /* Large tables horizontally scrollable */
+    .scrollx, .table-container, .table-wrap, .table-responsive, [style*="overflow-x:auto"] {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      display: block !important;
+      box-sizing: border-box !important;
+    }
+    .scrollx > table, [style*="overflow-x:auto"] > table {
+      display: table !important;
+      min-width: 580px !important;
+      width: 100% !important;
+    }
+    table:not(.scrollx table):not([style*="overflow-x:auto"] table) {
+      display: block !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      min-width: 580px !important;
+    }
+
+    /* Modal popups */
+    .modal-dialog, .modal-content, .modal-panel, .dossier-modal-panel {
+      width: 95vw !important;
+      max-width: 95vw !important;
+      margin: 10px auto !important;
+      max-height: 90vh !important;
+      overflow-y: auto !important;
+      box-sizing: border-box !important;
+      padding: 14px !important;
+    }
+    .modal-backdrop {
+      padding: 10px !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
   }
 </style>
 </head>
@@ -4901,7 +5137,25 @@ function renderShell(){
   }).join('');
 
   document.getElementById('app').innerHTML = `
-    <div class="sidebar">
+    <!-- Mobile top bar (visible only on <= 768px via CSS) -->
+    <div class="mobile-topbar" id="mobileTopBar">
+      <div class="mobile-topbar-brand">
+        <img src="${LOGO_RECIFY}" alt="Recify" class="mobile-logo-recify">
+        <span class="mobile-brand-wordmark">recify</span>
+        <span class="mobile-brand-divider">/</span>
+        <img src="${LOGO_KINETICS}" alt="Kinetics" class="mobile-logo-kinetics">
+        <span class="mobile-tenant-title">Kinetics</span>
+      </div>
+      <button class="mobile-hamburger-btn" id="mobileHamburgerBtn" aria-label="Toggle navigation menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop"></div>
+    <div class="sidebar" id="sidebar">
       <div class="brand-row">
         <img src="${LOGO_RECIFY}" alt="Recify" class="brand-logo-img">
         <div class="brand-wordmark">recify</div>
@@ -4996,6 +5250,66 @@ function renderContent(forceRerenderAll = false){
 }
 
 function attachShellEvents(){
+  // Mobile drawer toggle and auto-close handlers (<= 768px)
+  const mobileHamburgerBtn = document.getElementById('mobileHamburgerBtn');
+  const sidebar = document.querySelector('.sidebar');
+  const mobileDrawerBackdrop = document.getElementById('mobileDrawerBackdrop');
+
+  function closeMobileDrawer(){
+    if(sidebar) {
+      sidebar.classList.remove('sidebar-open');
+      sidebar.classList.remove('active');
+    }
+    if(mobileDrawerBackdrop) {
+      mobileDrawerBackdrop.classList.remove('active');
+      mobileDrawerBackdrop.classList.remove('open');
+    }
+  }
+
+  function toggleMobileDrawer(){
+    if(!sidebar) return;
+    const isOpen = sidebar.classList.contains('sidebar-open') || sidebar.classList.contains('active');
+    if(isOpen){
+      closeMobileDrawer();
+    } else {
+      sidebar.classList.add('sidebar-open');
+      sidebar.classList.add('active');
+      if(mobileDrawerBackdrop) {
+        mobileDrawerBackdrop.classList.add('active');
+        mobileDrawerBackdrop.classList.add('open');
+      }
+    }
+  }
+
+  if(mobileHamburgerBtn){
+    mobileHamburgerBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      toggleMobileDrawer();
+    });
+  }
+
+  if(mobileDrawerBackdrop){
+    mobileDrawerBackdrop.addEventListener('click', closeMobileDrawer);
+  }
+
+  // When clicking any navigation link inside sidebar, auto-close drawer on mobile
+  document.querySelectorAll('.sidebar [data-nav], .sidebar button, .sidebar .side-item').forEach(el => {
+    el.addEventListener('click', () => {
+      if(window.innerWidth <= 768){
+        closeMobileDrawer();
+      }
+    });
+  });
+
+  // When clicking outside the drawer, auto-close drawer on mobile
+  document.addEventListener('click', (e) => {
+    if(window.innerWidth <= 768 && sidebar && (sidebar.classList.contains('sidebar-open') || sidebar.classList.contains('active'))){
+      if(!sidebar.contains(e.target) && !e.target.closest('#mobileHamburgerBtn')){
+        closeMobileDrawer();
+      }
+    }
+  });
+
   document.querySelectorAll('[data-nav]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       STATE.view = canonicalView(btn.getAttribute('data-nav'));
