@@ -49,6 +49,16 @@ export const PAYMENT_TEMPLATE_CSV =
   "PMT-2001,INV-2003,Desert Rose Construction,45750,2026-06-28,Cleared\n" +
   "PMT-2002,INV-2001,Al Noor Contracting LLC,50000,2026-08-20,Cleared\n";
 
+export const PDC_TEMPLATE_CSV =
+  "cheque_no,drawer_entity,issuing_bank,amount_aed,maturity_date,maturity_status,invoice_ref,notes\n" +
+  "CHQ-782190,Meridian Gulf Projects,Emirates NBD,180500,2026-09-24,Due This Week,KIN-5010,Awaiting clearing cycle\n" +
+  "CHQ-552188,Al Maha Infrastructure,First Abu Dhabi Bank (FAB),192600,2026-09-18,Dishonored / Bounced,KIN-5016,Refer to Drawer\n";
+
+export const AP_TEMPLATE_CSV =
+  "vendor_name,category,invoice_no,amount_aed,due_date,status,prompt_discount_terms,notes\n" +
+  "National Manpower Solutions LLC,Critical Path Labor,AP-9101,285000,2026-09-25,Approved,,Burj Crown site payroll\n" +
+  "Daikin Middle East FZE,Long-Lead Materials,AP-8840,390000,2026-10-05,Pending,2/10 Net 30,Chiller compressor delivery release\n";
+
 export function normalize(s) {
   return String(s || "")
     .trim()

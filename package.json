@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node server.js",
     "build": "echo 'Build complete'",
+    "lint": "node --check server.js src/*.js",
     "start": "node server.js"
   },
   "dependencies": {

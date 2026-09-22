@@ -72,7 +72,7 @@ def generate_aging_insights(buckets, critical_days=None):
     insights = []
 
     all_items = [it for b in buckets for it in b["items"]]
-    risk_items = [it for it in all_items if it["days_overdue"] >= critical_days]
+    risk_items = [it for it in all_items if it["days_overdue"] > critical_days]
     risk_total = sum(it["amount"] for it in risk_items)
 
     if risk_total > 0 and total > 0:

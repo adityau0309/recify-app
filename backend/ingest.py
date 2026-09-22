@@ -58,6 +58,18 @@ PAYMENT_TEMPLATE_CSV = (
     "PMT-2002,INV-2001,Al Noor Contracting LLC,50000,2026-08-20,Cleared\n"
 )
 
+PDC_TEMPLATE_CSV = (
+    "cheque_no,issuing_bank,drawer_entity,amount,maturity_date,status,invoice_ref\n"
+    "CHQ-782190,Emirates NBD,Meridian Gulf Projects,180500,2026-09-24,Due This Week,KIN-5010\n"
+    "CHQ-449102,ADCB,Falcon Gulf Builders,139900,2026-09-26,Due This Week,KIN-5020\n"
+)
+
+AP_TEMPLATE_CSV = (
+    "vendor_name,category,invoice_no,amount_due,due_date,status,discount_terms\n"
+    "National Manpower Solutions LLC,Critical Path Labor,AP-9101,285000,2026-09-25,Approved,\n"
+    "Daikin Middle East FZE,Long-Lead Materials,AP-8840,390000,2026-10-05,Pending,2/10 Net 30\n"
+)
+
 
 def _normalize(s):
     return re.sub(r"[\s_-]+", " ", str(s).strip().lower())

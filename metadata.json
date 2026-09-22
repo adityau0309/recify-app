@@ -1,6 +1,6 @@
 {
   "name": "Recify AR Engine",
-  "description": "Financial reconciliation, accounts receivable aging, and credit scoring command center.",
+  "description": "UAE & GCC Commercial Contracting Working Capital & Dispute Command Center for Kinetics Group LLC. Features FIDIC Sub-Clause 14.6 IPC tracking, Dual-Tranche Retention Release, PDC liquidity registry, and AP/AR CFO Cash Cockpit.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
