@@ -14,10 +14,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import database as db
-from . import engine
-from . import ingest
-from .netsuite_connector import NetSuiteConnector
+try:
+    from . import database as db
+    from . import engine
+    from . import ingest
+    from .netsuite_connector import NetSuiteConnector
+except (ImportError, ValueError):
+    import database as db
+    import engine
+    import ingest
+    from netsuite_connector import NetSuiteConnector
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = ROOT_DIR / "frontend"
