@@ -1,0 +1,6 @@
+{
+  "name": "Recify AR Engine",
+  "description": "Financial reconciliation, accounts receivable aging, and credit scoring command center.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
