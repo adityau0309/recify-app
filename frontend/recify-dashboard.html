@@ -757,6 +757,14 @@
   .modal-foot{display:flex; gap:8px; justify-content:flex-end; padding:14px 20px 18px; border-top:1px solid var(--border);}
   .modal-note{font-size:10.5px; color:var(--textFaint); line-height:1.45; margin-top:4px; padding-top:10px; border-top:1px solid var(--borderSoft);}
 
+  /* Scoped styles for "Map Your Columns" wizard modal only */
+  .mapping-wizard-modal .modal-sub{color:#94a3b8;}
+  .mapping-wizard-modal .modal-note{color:#94a3b8; border-top:none; padding-top:0;}
+  .mapping-wizard-modal .mapping-field-label{color:#e2e8f0; font-weight:600; font-size:12.5px;}
+  .mapping-wizard-modal .threshold-row{border-bottom-color:rgba(255,255,255,0.08);}
+  .mapping-wizard-modal .threshold-row span.mapping-field-label{color:#e2e8f0;}
+  .mapping-wizard-modal .detected-badge{color:#e2e8f0; background:#162238; border:1px solid #233554;}
+
   /* search & notif dropdowns */
   .search-wrap{position:relative;}
   .search-clear{background:transparent; border:none; color:var(--textFaint); cursor:pointer; padding:2px; display:flex;}
@@ -2179,52 +2187,95 @@ function toggleAgingSort(col){
 
 function exportAgingCsv(){
   const today = new Date();
-  const invoices = DATA.invoices.invoices || [];
-  let csv = 'Customer,Current,1-30 Days,31-60 Days,61+ Days,Total Due\n';
-  
-  const customerMap = {};
-  invoices.forEach(inv => {
-    const cust = inv.customer_name || 'Unknown';
-    if(!customerMap[cust]){
-      customerMap[cust] = { name: cust, current: 0, days1_30: 0, days31_60: 0, days61Plus: 0, totalDue: 0 };
-    }
-    const due = new Date(inv.due_date);
-    const daysOverdue = Math.round((today - due) / 86400000);
-    const amt = inv.amount || 0;
-    customerMap[cust].totalDue += amt;
-    if(daysOverdue <= 0){
-      customerMap[cust].current += amt;
-    } else if(daysOverdue <= 30){
-      customerMap[cust].days1_30 += amt;
-    } else if(daysOverdue <= 60){
-      customerMap[cust].days31_60 += amt;
-    } else {
-      customerMap[cust].days61Plus += amt;
-    }
-  });
+  const invoices = (DATA && DATA.invoices && DATA.invoices.invoices) ? DATA.invoices.invoices : [];
+  const mode = STATE.agingViewMode || 'customer';
+  let csv = '';
 
-  Object.values(customerMap).forEach(c => {
-    csv += `"${c.name.replace(/"/g, '""')}",${c.current.toFixed(2)},${c.days1_30.toFixed(2)},${c.days31_60.toFixed(2)},${c.days61Plus.toFixed(2)},${c.totalDue.toFixed(2)}\n`;
-  });
+  if(mode === 'invoices'){
+    csv = 'Invoice ID,Customer,Due Date,Current,1-30 Days,31-60 Days,61+ Days,Total Due\n';
+    invoices.forEach(inv => {
+      const amt = (inv.status === 'paid' || (inv.amount || 0) <= 0) ? 0 : Number(inv.amount || 0);
+      const due = new Date(inv.due_date);
+      const daysOverdue = Math.round((today - due) / 86400000);
+      let cur = 0, d1 = 0, d31 = 0, d61 = 0;
+      if(amt > 0){
+        if(daysOverdue <= 0) cur = amt;
+        else if(daysOverdue <= 30) d1 = amt;
+        else if(daysOverdue <= 60) d31 = amt;
+        else d61 = amt;
+      }
+      csv += `"${(inv.id||inv.invoice_id||'').replace(/"/g, '""')}","${(inv.customer_name||'').replace(/"/g, '""')}",${inv.due_date||''},${cur.toFixed(2)},${d1.toFixed(2)},${d31.toFixed(2)},${d61.toFixed(2)},${amt.toFixed(2)}\n`;
+    });
+  } else if(mode === 'subcustomer'){
+    csv = 'Sub-customer,Current,1-30 Days,31-60 Days,61+ Days,Total Due\n';
+    const subMap = {};
+    invoices.forEach(inv => {
+      const cust = inv.customer_name || 'Unknown';
+      const sub = inv.subcustomer || inv.sub_customer || inv.project_name || inv.project || inv.subcontract_client || cust;
+      const subKey = (cust && sub !== cust) ? `${cust} — ${sub}` : sub;
+      if(!subMap[subKey]){
+        subMap[subKey] = { name: subKey, current: 0, days1_30: 0, days31_60: 0, days61Plus: 0, totalDue: 0 };
+      }
+      const due = new Date(inv.due_date);
+      const daysOverdue = Math.round((today - due) / 86400000);
+      const amt = (inv.status === 'paid' || (inv.amount || 0) <= 0) ? 0 : Number(inv.amount || 0);
+      if(amt > 0){
+        subMap[subKey].totalDue += amt;
+        if(daysOverdue <= 0) subMap[subKey].current += amt;
+        else if(daysOverdue <= 30) subMap[subKey].days1_30 += amt;
+        else if(daysOverdue <= 60) subMap[subKey].days31_60 += amt;
+        else subMap[subKey].days61Plus += amt;
+      }
+    });
+    Object.values(subMap).forEach(c => {
+      csv += `"${c.name.replace(/"/g, '""')}",${c.current.toFixed(2)},${c.days1_30.toFixed(2)},${c.days31_60.toFixed(2)},${c.days61Plus.toFixed(2)},${c.totalDue.toFixed(2)}\n`;
+    });
+  } else {
+    csv = 'Customer,Current,1-30 Days,31-60 Days,61+ Days,Total Due\n';
+    const customerMap = {};
+    invoices.forEach(inv => {
+      const cust = inv.customer_name || 'Unknown';
+      if(!customerMap[cust]){
+        customerMap[cust] = { name: cust, current: 0, days1_30: 0, days31_60: 0, days61Plus: 0, totalDue: 0 };
+      }
+      const due = new Date(inv.due_date);
+      const daysOverdue = Math.round((today - due) / 86400000);
+      const amt = (inv.status === 'paid' || (inv.amount || 0) <= 0) ? 0 : Number(inv.amount || 0);
+      if(amt > 0){
+        customerMap[cust].totalDue += amt;
+        if(daysOverdue <= 0) customerMap[cust].current += amt;
+        else if(daysOverdue <= 30) customerMap[cust].days1_30 += amt;
+        else if(daysOverdue <= 60) customerMap[cust].days31_60 += amt;
+        else customerMap[cust].days61Plus += amt;
+      }
+    });
+    Object.values(customerMap).forEach(c => {
+      csv += `"${c.name.replace(/"/g, '""')}",${c.current.toFixed(2)},${c.days1_30.toFixed(2)},${c.days31_60.toFixed(2)},${c.days61Plus.toFixed(2)},${c.totalDue.toFixed(2)}\n`;
+    });
+  }
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Recify_Aging_Report_${today.toISOString().slice(0,10)}.csv`;
+  a.download = `Recify_Aging_Report_${mode}_${today.toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  showToast('Aging report exported to CSV successfully.');
+  showToast(`Aging report (${mode}) exported to CSV successfully.`);
 }
 
 function agingReconPage(){
   const today = new Date();
-  const invoices = DATA.invoices.invoices || [];
+  const invoices = (DATA && DATA.invoices && DATA.invoices.invoices) ? DATA.invoices.invoices : [];
   const searchQ = (STATE.agingSearch || '').toLowerCase().trim();
+  const viewMode = STATE.agingViewMode || 'customer';
 
-  // Aggregate by customer
+  // Aggregate by customer and subcustomer
   const customerMap = {};
+  const subcustomerMap = {};
+  const invoiceRows = [];
+
   let currentTotal = 0;
   let days1_30Total = 0;
   let days31_60Total = 0;
@@ -2233,6 +2284,9 @@ function agingReconPage(){
 
   invoices.forEach(inv => {
     const cust = inv.customer_name || 'Unknown';
+    const sub = inv.subcustomer || inv.sub_customer || inv.project_name || inv.project || inv.subcontract_client || cust;
+    const subKey = (cust && sub !== cust) ? `${cust} — ${sub}` : sub;
+
     if(!customerMap[cust]){
       customerMap[cust] = {
         name: cust,
@@ -2243,67 +2297,203 @@ function agingReconPage(){
         totalDue: 0, totalCount: 0
       };
     }
+    if(!subcustomerMap[subKey]){
+      subcustomerMap[subKey] = {
+        name: subKey,
+        customer: cust,
+        current: 0, currentCount: 0,
+        days1_30: 0, days1_30Count: 0,
+        days31_60: 0, days31_60Count: 0,
+        days61Plus: 0, days61PlusCount: 0,
+        totalDue: 0, totalCount: 0
+      };
+    }
 
     const due = new Date(inv.due_date);
     const daysOverdue = Math.round((today - due) / 86400000);
-    const amt = inv.amount || 0;
+    const amt = (inv.status === 'paid' || (inv.amount || 0) <= 0) ? 0 : Number(inv.amount || 0);
 
-    customerMap[cust].totalDue += amt;
-    customerMap[cust].totalCount += 1;
-    grandTotalDue += amt;
-
+    let bucketName = 'current';
     if(daysOverdue <= 0){
-      customerMap[cust].current += amt;
-      customerMap[cust].currentCount += 1;
-      currentTotal += amt;
+      bucketName = 'current';
     } else if(daysOverdue <= 30){
-      customerMap[cust].days1_30 += amt;
-      customerMap[cust].days1_30Count += 1;
-      days1_30Total += amt;
+      bucketName = 'days1_30';
     } else if(daysOverdue <= 60){
-      customerMap[cust].days31_60 += amt;
-      customerMap[cust].days31_60Count += 1;
-      days31_60Total += amt;
+      bucketName = 'days31_60';
     } else {
-      customerMap[cust].days61Plus += amt;
-      customerMap[cust].days61PlusCount += 1;
-      days61PlusTotal += amt;
+      bucketName = 'days61Plus';
     }
+
+    if(amt > 0){
+      customerMap[cust].totalDue += amt;
+      customerMap[cust].totalCount += 1;
+      subcustomerMap[subKey].totalDue += amt;
+      subcustomerMap[subKey].totalCount += 1;
+      grandTotalDue += amt;
+
+      if(bucketName === 'current'){
+        customerMap[cust].current += amt;
+        customerMap[cust].currentCount += 1;
+        subcustomerMap[subKey].current += amt;
+        subcustomerMap[subKey].currentCount += 1;
+        currentTotal += amt;
+      } else if(bucketName === 'days1_30'){
+        customerMap[cust].days1_30 += amt;
+        customerMap[cust].days1_30Count += 1;
+        subcustomerMap[subKey].days1_30 += amt;
+        subcustomerMap[subKey].days1_30Count += 1;
+        days1_30Total += amt;
+      } else if(bucketName === 'days31_60'){
+        customerMap[cust].days31_60 += amt;
+        customerMap[cust].days31_60Count += 1;
+        subcustomerMap[subKey].days31_60 += amt;
+        subcustomerMap[subKey].days31_60Count += 1;
+        days31_60Total += amt;
+      } else {
+        customerMap[cust].days61Plus += amt;
+        customerMap[cust].days61PlusCount += 1;
+        subcustomerMap[subKey].days61Plus += amt;
+        subcustomerMap[subKey].days61PlusCount += 1;
+        days61PlusTotal += amt;
+      }
+    }
+
+    invoiceRows.push({
+      id: inv.id || inv.invoice_id,
+      customer_name: cust,
+      sub_name: subKey,
+      due_date: inv.due_date,
+      days_overdue: daysOverdue,
+      bucket: bucketName,
+      amount: amt,
+      totalDue: amt,
+      current: bucketName === 'current' ? amt : 0,
+      days1_30: bucketName === 'days1_30' ? amt : 0,
+      days31_60: bucketName === 'days31_60' ? amt : 0,
+      days61Plus: bucketName === 'days61Plus' ? amt : 0,
+      status: inv.status
+    });
   });
-
-  let customersList = Object.values(customerMap);
-
-  if(searchQ){
-    customersList = customersList.filter(c => c.name.toLowerCase().includes(searchQ));
-  }
 
   // Sort
   const sortCol = STATE.agingSortCol || 'totalDue';
   const sortDir = STATE.agingSortDir || 'desc';
-  customersList.sort((a,b) => {
-    let vA = a[sortCol];
-    let vB = b[sortCol];
-    if(typeof vA === 'string') return sortDir === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA);
-    return sortDir === 'asc' ? (vA - vB) : (vB - vA);
-  });
-
   const sortIcon = (col) => {
     if(STATE.agingSortCol !== col) return '';
     return STATE.agingSortDir === 'asc' ? ' ↑' : ' ↓';
   };
 
-  const rowsHtml = customersList.map(c => `
-    <tr>
-      <td class="col-left">
-        <div class="aging-customer-name" onclick="openCustomerDossier('${esc(jsEsc(c.name))}')">${esc(c.name)}</div>
-      </td>
-      <td class="col-right">${formatAgingCell(c.current, c.currentCount)}</td>
-      <td class="col-right">${formatAgingCell(c.days1_30, c.days1_30Count)}</td>
-      <td class="col-right">${formatAgingCell(c.days31_60, c.days31_60Count)}</td>
-      <td class="col-right">${formatAgingCell(c.days61Plus, c.days61PlusCount)}</td>
-      <td class="col-right">${formatAgingCell(c.totalDue, c.totalCount)}</td>
-    </tr>
-  `).join('');
+  let rowsHtml = '';
+  let theadHtml = '';
+
+  if(viewMode === 'invoices'){
+    let list = invoiceRows.filter(r => r.amount > 0);
+    if(searchQ){
+      list = list.filter(r => r.customer_name.toLowerCase().includes(searchQ) || String(r.id).toLowerCase().includes(searchQ));
+    }
+    list.sort((a,b) => {
+      let vA = a[sortCol] ?? a.totalDue;
+      let vB = b[sortCol] ?? b.totalDue;
+      if(typeof vA === 'string') return sortDir === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA);
+      return sortDir === 'asc' ? (vA - vB) : (vB - vA);
+    });
+
+    theadHtml = `
+      <tr>
+        <th class="col-left" style="cursor:pointer;" onclick="toggleAgingSort('id')">Invoice ID${sortIcon('id')}</th>
+        <th class="col-left" style="cursor:pointer;" onclick="toggleAgingSort('customer_name')">Customer${sortIcon('customer_name')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('current')">Current${sortIcon('current')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days1_30')">1-30 Days${sortIcon('days1_30')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days31_60')">31-60 Days${sortIcon('days31_60')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days61Plus')">61+ Days${sortIcon('days61Plus')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('totalDue')">Total Due${sortIcon('totalDue')}</th>
+      </tr>
+    `;
+
+    rowsHtml = list.length ? list.map(inv => `
+      <tr>
+        <td class="col-left font-mono font-bold" style="color:var(--blue);">${esc(inv.id)}</td>
+        <td class="col-left">
+          <div class="aging-customer-name" onclick="openCustomerDossier('${esc(jsEsc(inv.customer_name))}')">${esc(inv.customer_name)}</div>
+        </td>
+        <td class="col-right">${inv.bucket === 'current' ? `<span class="cell-val">${moneyFull(inv.amount)}</span>` : '<span class="cell-zero">—</span>'}</td>
+        <td class="col-right">${inv.bucket === 'days1_30' ? `<span class="cell-val">${moneyFull(inv.amount)}</span>` : '<span class="cell-zero">—</span>'}</td>
+        <td class="col-right">${inv.bucket === 'days31_60' ? `<span class="cell-val">${moneyFull(inv.amount)}</span>` : '<span class="cell-zero">—</span>'}</td>
+        <td class="col-right">${inv.bucket === 'days61Plus' ? `<span class="cell-val">${moneyFull(inv.amount)}</span>` : '<span class="cell-zero">—</span>'}</td>
+        <td class="col-right"><span class="cell-val" style="font-weight:700;">${moneyFull(inv.amount)}</span></td>
+      </tr>
+    `).join('') : `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--textMuted);">No open invoices found.</td></tr>`;
+  } else if(viewMode === 'subcustomer'){
+    let list = Object.values(subcustomerMap);
+    if(searchQ){
+      list = list.filter(c => c.name.toLowerCase().includes(searchQ));
+    }
+    list.sort((a,b) => {
+      let vA = a[sortCol] ?? a.totalDue;
+      let vB = b[sortCol] ?? b.totalDue;
+      if(typeof vA === 'string') return sortDir === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA);
+      return sortDir === 'asc' ? (vA - vB) : (vB - vA);
+    });
+
+    theadHtml = `
+      <tr>
+        <th class="col-left" style="cursor:pointer;" onclick="toggleAgingSort('name')">Sub-customer${sortIcon('name')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('current')">Current${sortIcon('current')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days1_30')">1-30 Days${sortIcon('days1_30')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days31_60')">31-60 Days${sortIcon('days31_60')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days61Plus')">61+ Days${sortIcon('days61Plus')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('totalDue')">Total Due${sortIcon('totalDue')}</th>
+      </tr>
+    `;
+
+    rowsHtml = list.length ? list.map(c => `
+      <tr>
+        <td class="col-left">
+          <div class="aging-customer-name" onclick="openCustomerDossier('${esc(jsEsc(c.customer || c.name))}')">${esc(c.name)}</div>
+        </td>
+        <td class="col-right">${formatAgingCell(c.current, c.currentCount)}</td>
+        <td class="col-right">${formatAgingCell(c.days1_30, c.days1_30Count)}</td>
+        <td class="col-right">${formatAgingCell(c.days31_60, c.days31_60Count)}</td>
+        <td class="col-right">${formatAgingCell(c.days61Plus, c.days61PlusCount)}</td>
+        <td class="col-right">${formatAgingCell(c.totalDue, c.totalCount)}</td>
+      </tr>
+    `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--textMuted);">No customer records found.</td></tr>`;
+  } else {
+    let list = Object.values(customerMap);
+    if(searchQ){
+      list = list.filter(c => c.name.toLowerCase().includes(searchQ));
+    }
+    list.sort((a,b) => {
+      let vA = a[sortCol] ?? a.totalDue;
+      let vB = b[sortCol] ?? b.totalDue;
+      if(typeof vA === 'string') return sortDir === 'asc' ? vA.localeCompare(vB) : vB.localeCompare(vA);
+      return sortDir === 'asc' ? (vA - vB) : (vB - vA);
+    });
+
+    theadHtml = `
+      <tr>
+        <th class="col-left" style="cursor:pointer;" onclick="toggleAgingSort('name')">Customer${sortIcon('name')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('current')">Current${sortIcon('current')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days1_30')">1-30 Days${sortIcon('days1_30')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days31_60')">31-60 Days${sortIcon('days31_60')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days61Plus')">61+ Days${sortIcon('days61Plus')}</th>
+        <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('totalDue')">Total Due${sortIcon('totalDue')}</th>
+      </tr>
+    `;
+
+    rowsHtml = list.length ? list.map(c => `
+      <tr>
+        <td class="col-left">
+          <div class="aging-customer-name" onclick="openCustomerDossier('${esc(jsEsc(c.name))}')">${esc(c.name)}</div>
+        </td>
+        <td class="col-right">${formatAgingCell(c.current, c.currentCount)}</td>
+        <td class="col-right">${formatAgingCell(c.days1_30, c.days1_30Count)}</td>
+        <td class="col-right">${formatAgingCell(c.days31_60, c.days31_60Count)}</td>
+        <td class="col-right">${formatAgingCell(c.days61Plus, c.days61PlusCount)}</td>
+        <td class="col-right">${formatAgingCell(c.totalDue, c.totalCount)}</td>
+      </tr>
+    `).join('') : `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--textMuted);">No customer records found.</td></tr>`;
+  }
 
   return `
     <div class="aging-view-container">
@@ -2365,14 +2555,7 @@ function agingReconPage(){
         <div style="overflow-x:auto;">
           <table class="aging-table">
             <thead>
-              <tr>
-                <th class="col-left" style="cursor:pointer;" onclick="toggleAgingSort('name')">Customer${sortIcon('name')}</th>
-                <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('current')">Current${sortIcon('current')}</th>
-                <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days1_30')">1-30 Days${sortIcon('days1_30')}</th>
-                <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days31_60')">31-60 Days${sortIcon('days31_60')}</th>
-                <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('days61Plus')">61+ Days${sortIcon('days61Plus')}</th>
-                <th class="col-right" style="cursor:pointer;" onclick="toggleAgingSort('totalDue')">Total Due${sortIcon('totalDue')}</th>
-              </tr>
+              ${theadHtml}
             </thead>
             <tbody>
               ${rowsHtml}
@@ -3848,9 +4031,9 @@ function renderMappingWizard(root){
     const suggestion = a.fuzzy_suggestions && a.fuzzy_suggestions[field];
     const options = ['<option value="">— Select column —</option>']
       .concat(cols.map(h=>`<option value="${esc(h)}" ${h===current?'selected':''}>${esc(h)}</option>`));
-    return `<div class="threshold-row" style="align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);">
+    return `<div class="threshold-row" style="align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
       <div>
-        <span class="muted" style="font-weight:600;color:var(--text);">Map ${esc(label)}</span>
+        <span class="mapping-field-label" style="font-weight:600;color:#e2e8f0;font-size:12.5px;display:block;">Map ${esc(label)}</span>
         ${suggestion ? `<div style="font-size:11px;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:4px;padding:2px 6px;margin-top:4px;display:inline-block;">Suggested: "${esc(suggestion.header)}" (${suggestion.confidence}% similarity) — please verify</div>` : ''}
       </div>
       <select data-mapfield="${field}" style="background:var(--cardAlt);border:1px solid var(--border);
@@ -3862,22 +4045,22 @@ function renderMappingWizard(root){
     ? ` (skipped ${a.header_rows_skipped} leading row${a.header_rows_skipped>1?'s':''} above the header we detected)` : '';
 
   const sheetBadge = a.detected_sheet
-    ? `<div style="font-size:11.5px;color:var(--text);background:var(--cardAlt);border:1px solid var(--border);border-radius:6px;padding:4px 10px;margin-bottom:12px;display:inline-block;">Detected Excel Sheet: <b>${esc(a.detected_sheet)}</b></div>`
+    ? `<div class="detected-badge" style="font-size:11.5px;color:#e2e8f0;background:#162238;border:1px solid #233554;border-radius:6px;padding:4px 10px;margin-bottom:12px;display:inline-block;">Detected Excel Sheet: <b style="color:#ffffff;">${esc(a.detected_sheet)}</b></div>`
     : '';
 
   root.innerHTML = `
     <div class="modal-backdrop" id="modalBackdrop">
-      <div class="modal-panel">
+      <div class="modal-panel mapping-wizard-modal">
         <div class="modal-head">
           <div>
             <div class="modal-title">Map Your Columns</div>
-            <div class="modal-sub">Confirm column mapping for "${esc(file.name)}". Suggestions are highlighted for review — nothing is ever guessed silently.</div>
+            <div class="modal-sub" style="color:#94a3b8;">Confirm column mapping for "${esc(file.name)}". Suggestions are highlighted for review — nothing is ever guessed silently.</div>
           </div>
           <button class="modal-close" id="modalCloseBtn">${ICON('logOut',15)}</button>
         </div>
         <div class="modal-body">
           ${sheetBadge}
-          <div class="modal-note" style="margin-top:0;margin-bottom:14px;">Preview of the first ${a.preview_rows.length} data row(s) detected${skippedNote}:</div>
+          <div class="modal-note" style="margin-top:0;margin-bottom:14px;color:#94a3b8;border-top:none;padding-top:0;">Preview of the first ${a.preview_rows.length} data row(s) detected${skippedNote}:</div>
           ${previewTable}
           ${dropdowns}
         </div>
@@ -3987,7 +4170,7 @@ async function proceedToPayments(){
 async function finishImport(invResult, payResult){
   await loadData();
   closeImportModal();
-  renderContent();
+  renderContent(true);
   const skipped = (invResult.skipped||0) + (payResult.skipped||0);
   const skippedNote = skipped ? ` (${skipped} row(s) skipped — unreadable amounts/dates, not guessed.)` : '';
   const sheetNote = invResult.detected_sheet ? ` [Sheet: ${invResult.detected_sheet}]` : '';
@@ -5064,11 +5247,11 @@ function canonicalView(v){
 }
 
 function dataModeChip(){
-  const mode = DATA.overview.data_mode;
+  const mode = DATA && DATA.overview ? DATA.overview.data_mode : 'sample';
   const isLive = mode === 'live';
-  return `<span class="live-chip" style="${isLive?'':'color:var(--amber);'}">
+  return `<span class="live-chip" id="dataModeBadge" style="${isLive?'':'color:var(--amber);'}">
     <span class="live-dot" style="background:${isLive?C.green:C.amber};box-shadow:0 0 0 3px ${isLive?'rgba(52,211,153,0.18)':'rgba(245,165,36,0.18)'};"></span>
-    <span>${isLive?'Live':'Sample data'}</span></span>`;
+    <span>${isLive?'Imported data':'Sample data'}</span></span>`;
 }
 
 function reconciledChip(){
@@ -5186,8 +5369,10 @@ function renderShell(){
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             <span>Import Data</span>
           </button>
-          ${dataModeChip()}
-          ${reconciledChip()}
+          <div id="headerBadges" style="display:inline-flex;align-items:center;gap:10px;">
+            ${dataModeChip()}
+            ${reconciledChip()}
+          </div>
         </div>
       </div>
       <div class="content" id="content">
@@ -5213,6 +5398,11 @@ function renderContent(forceRerenderAll = false){
 
   const pt = document.getElementById('pageMainTitle') || document.getElementById('pageTitle');
   if(pt) pt.textContent = TITLES[cur] || 'Aging report';
+
+  const hb = document.getElementById('headerBadges');
+  if(hb){
+    hb.innerHTML = `${dataModeChip()} ${reconciledChip()}`;
+  }
 
   const views = {
     aging_recon: agingReconPage,

@@ -488,7 +488,11 @@ def parse_invoices_file(file_bytes, explicit_mapping=None, filename=""):
 
     header_idx = detect_header_row_from_grid(grid, INVOICE_ALIASES)
     headers = [str(h).strip() for h in grid[header_idx] if str(h).strip()]
-    colmap = explicit_mapping or build_column_map(headers, INVOICE_ALIASES)
+    auto_map = build_column_map(headers, INVOICE_ALIASES)
+    if explicit_mapping:
+        colmap = {**auto_map, **{k: v for k, v in explicit_mapping.items() if v}}
+    else:
+        colmap = auto_map
     missing = [f for f in REQUIRED_INVOICE_FIELDS if f not in colmap]
     if missing:
         raise ValueError(
@@ -539,7 +543,11 @@ def parse_payments_file(file_bytes, explicit_mapping=None, filename=""):
 
     header_idx = detect_header_row_from_grid(grid, PAYMENT_ALIASES)
     headers = [str(h).strip() for h in grid[header_idx] if str(h).strip()]
-    colmap = explicit_mapping or build_column_map(headers, PAYMENT_ALIASES)
+    auto_map = build_column_map(headers, PAYMENT_ALIASES)
+    if explicit_mapping:
+        colmap = {**auto_map, **{k: v for k, v in explicit_mapping.items() if v}}
+    else:
+        colmap = auto_map
     missing = [f for f in REQUIRED_PAYMENT_FIELDS if f not in colmap]
     if missing:
         raise ValueError(
@@ -582,5 +590,12 @@ def parse_payments_file(file_bytes, explicit_mapping=None, filename=""):
 # Backwards compatibility wrappers
 analyze_invoices_csv = analyze_invoices_file
 analyze_payments_csv = analyze_payments_file
-parse_invoices_csv = lambda fb, em=None: parse_invoices_file(fb, em)[:2]
-parse_payments_csv = lambda fb, em=None: parse_payments_file(fb, em)[:2]
+
+
+def parse_invoices_csv(file_bytes, explicit_mapping=None, filename=""):
+    return parse_invoices_file(file_bytes, explicit_mapping=explicit_mapping, filename=filename)[:2]
+
+
+def parse_payments_csv(file_bytes, explicit_mapping=None, filename=""):
+    return parse_payments_file(file_bytes, explicit_mapping=explicit_mapping, filename=filename)[:2]
+

@@ -113,12 +113,21 @@ export function generateAgingInsights(buckets, criticalDays = 60) {
 }
 
 export function reconcilePayments(invoices, payments) {
-  const byId = new Map(invoices.map(inv => [inv.id, inv]));
+  const byId = new Map();
+  for (const inv of invoices) {
+    if (inv.id !== undefined && inv.id !== null) {
+      byId.set(String(inv.id).trim(), inv);
+    }
+    if (inv.invoice_id !== undefined && inv.invoice_id !== null) {
+      byId.set(String(inv.invoice_id).trim(), inv);
+    }
+  }
   const seenTransactions = new Set();
   const results = [];
 
   for (const p of payments) {
-    const inv = byId.get(p.invoice_ref);
+    const invRef = String(p.invoice_ref || p.invoice_id || "").trim();
+    const inv = invRef ? byId.get(invRef) : null;
     if (!inv) {
       const candidates = invoices.filter(i => (i.customer_id === p.customer_id || i.customer_name === p.customer_name) && i.status !== "paid");
       let suggestion = null;
@@ -138,7 +147,8 @@ export function reconcilePayments(invoices, payments) {
       continue;
     }
 
-    const sig = `${p.id}-${p.amount}-${p.invoice_ref}`;
+    const pid = p.id || p.payment_id || "";
+    const sig = `${pid}-${p.amount}-${invRef}`;
     if (seenTransactions.has(sig)) {
       results.push({
         ...p,
@@ -190,11 +200,20 @@ export function buildReconciledLedger(invoices, payments) {
   const duplicatePayments = [];
   const unappliedCash = [];
   const seenPaymentSigs = new Set();
-  const invoicesById = new Map(invoices.map(i => [i.id, i]));
+  const invoicesById = new Map();
+  for (const i of invoices) {
+    if (i.id !== undefined && i.id !== null) {
+      invoicesById.set(String(i.id).trim(), i);
+    }
+    if (i.invoice_id !== undefined && i.invoice_id !== null) {
+      invoicesById.set(String(i.invoice_id).trim(), i);
+    }
+  }
 
   for (const p of payments) {
     const pid = p.id || p.payment_id;
-    const sig = `${p.customer_id || p.customer_name}|${p.amount}|${p.paid_date}|${p.invoice_ref}`;
+    const invRef = String(p.invoice_ref || p.invoice_id || "").trim();
+    const sig = `${p.customer_id || p.customer_name}|${p.amount}|${p.paid_date}|${invRef}`;
     
     // Check for identical duplicate transmissions
     if ((pid && seenPaymentSigs.has(pid)) || seenPaymentSigs.has(sig)) {
@@ -204,7 +223,7 @@ export function buildReconciledLedger(invoices, payments) {
     if (pid) seenPaymentSigs.add(pid);
     seenPaymentSigs.add(sig);
 
-    if (!p.invoice_ref || !invoicesById.has(p.invoice_ref)) {
+    if (!invRef || !invoicesById.has(invRef)) {
       const candidates = invoices.filter(i => (i.customer_id === p.customer_id || i.customer_name === p.customer_name) && i.status !== "paid");
       let suggestion = null;
       if (candidates.length > 0) {
@@ -218,7 +237,7 @@ export function buildReconciledLedger(invoices, payments) {
         customer_name: p.customer_name || p.customer,
         amount: p.amount,
         paid_date: p.paid_date || p.payment_date,
-        invoice_ref: p.invoice_ref,
+        invoice_ref: invRef,
         method: p.method || "ACH",
         status: p.status || "Cleared",
         suggestion: suggestion ? { id: suggestion.id, amount: suggestion.amount } : null
@@ -227,10 +246,10 @@ export function buildReconciledLedger(invoices, payments) {
     }
 
     // Cumulative installments against the same invoice
-    if (!paymentsByInvoice.has(p.invoice_ref)) {
-      paymentsByInvoice.set(p.invoice_ref, []);
+    if (!paymentsByInvoice.has(invRef)) {
+      paymentsByInvoice.set(invRef, []);
     }
-    paymentsByInvoice.get(p.invoice_ref).push(p);
+    paymentsByInvoice.get(invRef).push(p);
   }
 
   const credits = [];
@@ -256,7 +275,8 @@ export function buildReconciledLedger(invoices, payments) {
   let totalDedicatedCredits = 0;
 
   const reconciledInvoices = invoices.map(inv => {
-    const matched = paymentsByInvoice.get(inv.id) || [];
+    const invKey = String(inv.id !== undefined && inv.id !== null ? inv.id : (inv.invoice_id || "")).trim();
+    const matched = paymentsByInvoice.get(invKey) || [];
     
     // Invariant 3: Only Cleared payments reduce the invoice open balance
     const clearedPayments = [];

@@ -122,9 +122,10 @@ class LedgerStore {
   }
 
   persistInvoices(rows, sourceLabel, reset = false, sourceTag = "csv") {
-    if (reset) {
+    if (reset || !this.hasCustomImport) {
       this.invoices.clear();
       this.customers.clear();
+      this.payments.clear();
       this.auditLog = [];
     }
     if (sourceTag !== "demo") {
@@ -175,7 +176,7 @@ class LedgerStore {
   }
 
   persistPayments(rows, sourceLabel, reset = false, sourceTag = "csv") {
-    if (reset) {
+    if (reset || !this.hasCustomImport) {
       this.payments.clear();
       this.auditLog = this.auditLog.filter(a => a.entity_type !== "payment");
     }

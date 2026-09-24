@@ -133,12 +133,18 @@ def reconcile_payments(invoices, payments):
       - duplicate: more than one payment references the same invoice
       - unmatched: payment has an invoice_ref that doesn't exist
     """
-    by_id = {inv["id"]: inv for inv in invoices}
+    by_id = {}
+    for inv in invoices:
+        if inv.get("id") is not None:
+            by_id[str(inv["id"]).strip()] = inv
+        if inv.get("invoice_id") is not None:
+            by_id[str(inv["invoice_id"]).strip()] = inv
     seen = {}
     results = []
 
     for p in payments:
-        inv = by_id.get(p.get("invoice_ref"))
+        inv_ref = str(p.get("invoice_ref") or p.get("invoice_id") or "").strip()
+        inv = by_id.get(inv_ref) if inv_ref else None
         if not inv:
             candidates = [
                 i for i in invoices
@@ -157,8 +163,8 @@ def reconcile_payments(invoices, payments):
             })
             continue
 
-        seen[p["invoice_ref"]] = seen.get(p["invoice_ref"], 0) + 1
-        if seen[p["invoice_ref"]] > 1:
+        seen[inv_ref] = seen.get(inv_ref, 0) + 1
+        if seen[inv_ref] > 1:
             results.append({
                 **p,
                 "match_status": "duplicate",

@@ -803,7 +803,10 @@ export function parseInvoicesFile(fileBufferOrContent, explicitMapping = null, f
   const headerIdx = detectHeaderRow(rawLines, INVOICE_ALIASES);
   const headers = rawLines[headerIdx].map(h => String(h).trim());
 
-  const colmap = explicitMapping || buildColumnMap(headers, INVOICE_ALIASES);
+  const autoMap = buildColumnMap(headers, INVOICE_ALIASES);
+  const colmap = explicitMapping
+    ? { ...autoMap, ...Object.fromEntries(Object.entries(explicitMapping).filter(([_, v]) => v)) }
+    : autoMap;
   const splitDate = detectSplitDateColumns(headers);
 
   const missing = REQUIRED_INVOICE_FIELDS.filter(f => !colmap[f] && !(f === "due_date" && splitDate));
@@ -895,7 +898,10 @@ export function parsePaymentsFile(fileBufferOrContent, explicitMapping = null, f
   const headerIdx = detectHeaderRow(rawLines, PAYMENT_ALIASES);
   const headers = rawLines[headerIdx].map(h => String(h).trim());
 
-  const colmap = explicitMapping || buildColumnMap(headers, PAYMENT_ALIASES);
+  const autoMap = buildColumnMap(headers, PAYMENT_ALIASES);
+  const colmap = explicitMapping
+    ? { ...autoMap, ...Object.fromEntries(Object.entries(explicitMapping).filter(([_, v]) => v)) }
+    : autoMap;
   const missing = REQUIRED_PAYMENT_FIELDS.filter(f => !colmap[f]);
 
   if (missing.length > 0) {

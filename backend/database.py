@@ -130,10 +130,12 @@ def reset_db():
 
 def persist_invoices(rows, source_label, reset=False, source_tag="csv"):
     with get_conn() as conn:
-        if reset:
+        has_custom = conn.execute("SELECT 1 FROM invoices WHERE source != 'demo' LIMIT 1").fetchone()
+        if reset or not has_custom:
             conn.execute("DELETE FROM invoices")
             conn.execute("DELETE FROM customers")
-            conn.execute("DELETE FROM audit_log WHERE entity_type='invoice'")
+            conn.execute("DELETE FROM payments")
+            conn.execute("DELETE FROM audit_log WHERE entity_type IN ('invoice', 'payment')")
         for r in rows:
             conn.execute(
                 "INSERT OR IGNORE INTO customers (id, name, source) VALUES (?, ?, ?)",
@@ -165,7 +167,8 @@ def persist_invoices(rows, source_label, reset=False, source_tag="csv"):
 
 def persist_payments(rows, source_label, reset=False, source_tag="csv"):
     with get_conn() as conn:
-        if reset:
+        has_custom = conn.execute("SELECT 1 FROM payments WHERE source != 'demo' LIMIT 1").fetchone()
+        if reset or not has_custom:
             conn.execute("DELETE FROM payments")
             conn.execute("DELETE FROM audit_log WHERE entity_type='payment'")
         for r in rows:

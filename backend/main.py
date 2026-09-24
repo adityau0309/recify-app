@@ -133,11 +133,17 @@ def _build_reconciled_ledger(invoices, payments):
     duplicate_pmts = []
     unapplied_cash = []
     seen_pmt_signatures = set()
-    inv_by_id = {i["id"]: i for i in invoices}
+    inv_by_id = {}
+    for i in invoices:
+        if i.get("id") is not None:
+            inv_by_id[str(i["id"]).strip()] = i
+        if i.get("invoice_id") is not None:
+            inv_by_id[str(i["invoice_id"]).strip()] = i
 
     for p in payments:
+        iref = str(p.get("invoice_ref") or p.get("invoice_id") or "").strip()
         # Check for true duplicate transactions (same ID or identical customer+amount+date+ref)
-        sig = (p.get("customer_id"), p.get("amount"), p.get("paid_date"), p.get("invoice_ref"))
+        sig = (p.get("customer_id"), p.get("amount"), p.get("paid_date"), iref)
         pid = p.get("id")
         if pid in seen_pmt_signatures or (sig in seen_pmt_signatures and pid):
             duplicate_pmts.append(p)
@@ -146,9 +152,8 @@ def _build_reconciled_ledger(invoices, payments):
             seen_pmt_signatures.add(pid)
         seen_pmt_signatures.add(sig)
 
-        iref = p.get("invoice_ref")
         if not iref or iref not in inv_by_id:
-            cands = [i for i in invoices if i["customer_id"] == p["customer_id"] and i.get("status") != "paid"]
+            cands = [i for i in invoices if (i.get("customer_id") == p.get("customer_id") or i.get("customer_name") == p.get("customer_name")) and i.get("status") != "paid"]
             sug = min(cands, key=lambda c: abs(c["amount"] - p["amount"])) if cands else None
             unapplied_cash.append({
                 "id": p["id"],
@@ -188,7 +193,8 @@ def _build_reconciled_ledger(invoices, payments):
     total_dedicated_credits = 0.0
 
     for inv in invoices:
-        matched = pmts_by_inv.get(inv["id"], [])
+        inv_key = str(inv.get("id") if inv.get("id") is not None else (inv.get("invoice_id") or "")).strip()
+        matched = pmts_by_inv.get(inv_key, [])
         
         # Invariant 3: Only cleared payments reduce invoice balance.
         # PDCs held, in transit, or bounced do NOT deduct from open balance.
@@ -268,6 +274,8 @@ def _current_data_mode():
         return DATA_MODE_OVERRIDE
     with db.get_conn() as conn:
         has_custom = conn.execute("SELECT 1 FROM invoices WHERE source != 'demo' LIMIT 1").fetchone()
+        if not has_custom:
+            has_custom = conn.execute("SELECT 1 FROM payments WHERE source != 'demo' LIMIT 1").fetchone()
     return "live" if has_custom else "sample"
 
 
@@ -304,13 +312,13 @@ async def ingest_invoices(file: UploadFile = File(...), reset: bool = Query(Fals
     explicit_map = json.loads(mapping) if mapping else None
     if not explicit_map:
         try:
-            analysis = ingest.analyze_invoices_csv(content)
+            analysis = ingest.analyze_invoices_csv(content, filename=file.filename or "")
             if analysis["missing_required"]:
                 return {"needs_mapping": True, **analysis}
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
     try:
-        rows, errors = ingest.parse_invoices_csv(content, explicit_mapping=explicit_map)
+        rows, errors = ingest.parse_invoices_csv(content, explicit_mapping=explicit_map, filename=file.filename or "")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     n = db.persist_invoices(rows, f"CSV upload: {file.filename}", reset=reset)
@@ -324,13 +332,13 @@ async def ingest_payments(file: UploadFile = File(...), reset: bool = Query(Fals
     explicit_map = json.loads(mapping) if mapping else None
     if not explicit_map:
         try:
-            analysis = ingest.analyze_payments_csv(content)
+            analysis = ingest.analyze_payments_csv(content, filename=file.filename or "")
             if analysis["missing_required"]:
                 return {"needs_mapping": True, **analysis}
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
     try:
-        rows, errors = ingest.parse_payments_csv(content, explicit_mapping=explicit_map)
+        rows, errors = ingest.parse_payments_csv(content, explicit_mapping=explicit_map, filename=file.filename or "")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     n = db.persist_payments(rows, f"CSV upload: {file.filename}", reset=reset)
