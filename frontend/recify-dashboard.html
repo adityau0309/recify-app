@@ -712,9 +712,9 @@
   }
   @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
   .modal-panel{
-    background:#0c1424; border:1px solid var(--borderAccent); border-radius:var(--radius-lg); width:100%; max-width:580px;
+    background:#0b1322; border:1px solid #233554; border-radius:var(--radius-lg); width:100%; max-width:620px;
     max-height:88vh; overflow-y:auto; box-shadow:0 24px 60px rgba(0,0,0,0.7); position:relative; z-index:211;
-    backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+    backdrop-filter:none !important; -webkit-backdrop-filter:none !important; color:#e2e8f0;
   }
   .modal-panel table.data{width:100%; border-collapse:collapse;}
   .modal-panel table.data th{
@@ -732,30 +732,30 @@
     padding:5px 12px; font-size:11.5px; font-weight:600; white-space:nowrap;
   }
   .modal-panel .btn-ghost:hover{background:#1e2e4a; color:#ffffff; border-color:#3b82f6;}
-  .modal-head{display:flex; align-items:flex-start; justify-content:space-between; padding:18px 20px 12px; border-bottom:1px solid var(--border);}
-  .modal-title{font-size:15px; font-weight:700; color:#fff;}
-  .modal-sub{font-size:11.5px; color:var(--textMuted); margin-top:3px; line-height:1.45;}
-  .modal-close{background:transparent; border:none; color:var(--textFaint); cursor:pointer; padding:4px; border-radius:4px;}
-  .modal-close:hover{color:#fff; background:rgba(255,255,255,0.06);}
+  .modal-head{display:flex; align-items:flex-start; justify-content:space-between; padding:18px 20px 12px; border-bottom:1px solid #1e293b;}
+  .modal-title{font-size:16px; font-weight:700; color:#ffffff;}
+  .modal-sub{font-size:12px; color:#94a3b8; margin-top:3px; line-height:1.45;}
+  .modal-close{background:transparent; border:none; color:#94a3b8; cursor:pointer; padding:4px; border-radius:4px;}
+  .modal-close:hover{color:#fff; background:rgba(255,255,255,0.08);}
   .modal-body{padding:18px 20px;}
   .weight-row{margin-bottom:14px;}
-  .weight-label{display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;}
-  .weight-label b{font-size:12px; font-family:'JetBrains Mono',monospace;}
+  .weight-label{display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:#e2e8f0;}
+  .weight-label b{font-size:12px; font-family:'JetBrains Mono',monospace; color:#ffffff;}
   .weight-row input[type=range]{width:100%; accent-color:var(--blue);}
   .weight-sum{
     display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:var(--radius-sm);
-    background:#070b13; border:1px solid var(--border); font-size:12px; margin-top:4px; margin-bottom:16px;
+    background:#070b13; border:1px solid #1e293b; font-size:12px; margin-top:4px; margin-bottom:16px;
     font-family:'JetBrains Mono',monospace;
   }
   .weight-sum.ok{color:var(--green); border-color:var(--greenBorder);}
   .weight-sum.bad{color:var(--red); border-color:var(--redBorder);}
-  .threshold-row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; font-size:12px;}
+  .threshold-row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; font-size:12px; color:#e2e8f0;}
   .threshold-row input[type=number]{
-    width:90px; background:#070b13; border:1px solid var(--border); border-radius:var(--radius-sm);
-    color:var(--text); padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:12px;
+    width:90px; background:#070b13; border:1px solid #233554; border-radius:var(--radius-sm);
+    color:#ffffff; padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:12px;
   }
-  .modal-foot{display:flex; gap:8px; justify-content:flex-end; padding:14px 20px 18px; border-top:1px solid var(--border);}
-  .modal-note{font-size:10.5px; color:var(--textFaint); line-height:1.45; margin-top:4px; padding-top:10px; border-top:1px solid var(--borderSoft);}
+  .modal-foot{display:flex; gap:8px; justify-content:flex-end; padding:14px 20px 18px; border-top:1px solid #1e293b;}
+  .modal-note{font-size:11px; color:#94a3b8; line-height:1.5; margin-top:10px; padding-top:10px; border-top:1px solid #1e293b;}
 
   /* Scoped styles for "Map Your Columns" wizard modal only */
   .mapping-wizard-modal .modal-sub{color:#94a3b8;}
@@ -806,28 +806,52 @@
   table.data.disabled{opacity:0.5;}
 
   .privacy-banner{
-    background:#081320; border:1px solid #1a3c5c; border-radius:var(--radius-md);
-    padding:11px 13px; font-size:11px; line-height:1.55; color:var(--textMuted); margin-bottom:16px; display:flex; gap:9px;
+    background:#0b192e; border:1px solid #1e3a5f; border-radius:var(--radius-md);
+    padding:11px 13px; font-size:11.5px; line-height:1.55; color:#94a3b8; margin-bottom:16px; display:flex; gap:9px;
   }
-  .privacy-banner .ico{color:var(--blue); flex-shrink:0; margin-top:1px;}
-  .template-row{display:flex; gap:9px; margin-bottom:18px;}
+  .privacy-banner .ico{color:#38bdf8; flex-shrink:0; margin-top:1px;}
+  .privacy-banner b{color:#ffffff;}
+  .template-row{display:flex; gap:10px; margin-bottom:14px;}
   .template-link{
-    flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:var(--cardAlt);
-    border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 9px; font-size:11.5px; color:var(--textMuted);
-    text-decoration:none; cursor:pointer; transition:all .12s;
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#111c30;
+    border:1px solid #233554; border-radius:var(--radius-sm); padding:8px 10px; font-size:11.5px; color:#93c5fd;
+    text-decoration:none; cursor:pointer; transition:all .12s; font-weight:600;
   }
-  .template-link:hover{border-color:var(--blue); color:#fff;}
+  .template-link:hover{border-color:#38bdf8; background:#182846; color:#ffffff;}
   .dropzone{
-    border:1.5px dashed var(--borderAccent); border-radius:var(--radius-md); padding:18px 14px; text-align:center;
-    cursor:pointer; margin-bottom:10px; transition:all .12s; background:#070b13;
+    border:1.5px dashed #2b3e5e; border-radius:var(--radius-md); padding:16px 18px; text-align:left;
+    cursor:pointer; margin-bottom:14px; transition:all .15s ease; background:#0b1426; color:#e2e8f0;
   }
-  .dropzone:hover, .dropzone.dragover{border-color:var(--blue); background:rgba(56,189,248,0.04);}
-  .dropzone.filled{border-style:solid; border-color:var(--greenBorder); background:var(--greenDim);}
-  .dropzone .dz-icon{color:var(--textFaint); margin-bottom:6px;}
-  .dropzone.filled .dz-icon{color:var(--green);}
-  .dropzone .dz-label{font-size:12px; font-weight:600; margin-bottom:2px;}
-  .dropzone .dz-sub{font-size:10.5px; color:var(--textFaint);}
-  .dropzone .dz-file{font-size:11.5px; color:var(--text); margin-top:5px; display:flex; align-items:center; justify-content:center; gap:5px;}
+  .dropzone:hover, .dropzone.dragover{border-color:#38bdf8; background:#111d35;}
+  .dropzone.filled{border-style:solid; border-color:#059669; background:rgba(16,185,129,0.12);}
+  .dropzone .dz-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; gap:8px;}
+  .dropzone .dz-title-wrap{display:flex; align-items:center; gap:8px;}
+  .dropzone .dz-badge{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    padding:2px 7px; border-radius:4px; font-family:'JetBrains Mono',monospace;
+  }
+  .dropzone .dz-badge-inv{background:rgba(37,99,235,0.25); color:#60a5fa; border:1px solid rgba(59,130,246,0.4);}
+  .dropzone .dz-badge-pay{background:rgba(16,185,129,0.22); color:#34d399; border:1px solid rgba(16,185,129,0.4);}
+  .dropzone .dz-label{font-size:13.5px; font-weight:700; color:#ffffff; margin-bottom:0;}
+  .dropzone .dz-desc{font-size:12px; color:#cbd5e1; margin-bottom:8px; line-height:1.45;}
+  .dropzone .dz-expected{
+    font-size:11px; color:#94a3b8; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08);
+    border-radius:5px; padding:6px 10px; margin-bottom:10px; line-height:1.45;
+  }
+  .dropzone .dz-expected b{color:#ffffff;}
+  .dropzone .dz-action-area{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:10px 12px; border-radius:6px; background:rgba(255,255,255,0.05);
+    border:1px dashed rgba(255,255,255,0.15); font-size:12px; color:#93c5fd; font-weight:500;
+    transition:all .12s ease;
+  }
+  .dropzone:hover .dz-action-area{background:rgba(56,189,248,0.12); border-color:#38bdf8; color:#ffffff;}
+  .dropzone.filled .dz-action-area{
+    background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.45); color:#34d399;
+  }
+  .dropzone .dz-file-name{font-weight:700; color:#ffffff; font-family:'JetBrains Mono',monospace;}
+  .dropzone .dz-file-size{color:#a7f3d0; font-size:11px;}
+  .dropzone .dz-replace-hint{color:#6ee7b7; font-size:11px; margin-left:auto;}
   .import-progress{text-align:center; padding:24px 10px;}
   .import-progress .spin{
     width:26px; height:26px; border:2.5px solid rgba(255,255,255,0.1); border-top-color:var(--blue);
@@ -3812,16 +3836,39 @@ async function postFile(url, file, mapping){
   return data;
 }
 
-function dropzoneHtml(id, label, file){
+function dropzoneHtml(id, config, file){
   const filled = !!file;
+  const cfg = typeof config === 'string' ? { title: config } : (config || {});
+  const badge = cfg.badge || (id === 'dzInvoices' ? 'STEP 1 · INVOICE DATA' : 'STEP 2 · PAYMENT DATA');
+  const badgeClass = cfg.badgeClass || (id === 'dzInvoices' ? 'dz-badge-inv' : 'dz-badge-pay');
+  const title = cfg.title || (id === 'dzInvoices' ? 'Invoice Data (Sales & Receivables)' : 'Payment Data (Cash Receipts & Remittances)');
+  const desc = cfg.description || (id === 'dzInvoices'
+    ? 'Upload your sales invoices, billing records, or customer balances (what customers owe you).'
+    : 'Upload your customer payments, remittance advice, or bank collections (cash received to settle invoices).');
+  const expected = cfg.expectedColumns || (id === 'dzInvoices'
+    ? 'Invoice ID / Number, Customer Name, Amount, Due Date (or Issue Date)'
+    : 'Payment ID / Ref, Invoice ID, Customer Name, Amount Paid, Payment Date');
+  const fileLabel = cfg.fileTypeLabel || (id === 'dzInvoices' ? 'Invoices File' : 'Payments File');
+
   return `
-    <div class="dropzone ${filled?'filled':''}" id="${id}">
-      <div class="dz-icon">${ICON(filled?'checkCircle':'upload', 22)}</div>
-      <div class="dz-label">${label}</div>
-      ${filled
-        ? `<div class="dz-file">${ICON('fileText',13)} ${esc(file.name)} · ${fmtFileSize(file.size)}</div>`
-        : `<div class="dz-sub">Drag & drop, or click to browse (.csv, .xlsx, .tsv)</div>`}
+    <div class="dropzone ${filled ? 'filled' : ''}" id="${id}">
       <input type="file" accept=".csv,.xlsx,.xls,.tsv,.txt" id="${id}_input" style="display:none;">
+      <div class="dz-header">
+        <div class="dz-title-wrap">
+          <span class="dz-badge ${badgeClass}">${esc(badge)}</span>
+          <div class="dz-label">${esc(title)}</div>
+        </div>
+        ${filled ? `<span style="font-size:11.5px;font-weight:700;color:#34d399;display:flex;align-items:center;gap:4px;">${ICON('checkCircle',14)} Ready to process</span>` : ''}
+      </div>
+      <div class="dz-desc">${esc(desc)}</div>
+      <div class="dz-expected">
+        <span style="color:#94a3b8;font-weight:600;">Expected columns:</span> <b>${esc(expected)}</b>
+      </div>
+      <div class="dz-action-area">
+        ${filled
+          ? `${ICON('fileText',15)} <span class="dz-file-name">${esc(file.name)}</span> <span class="dz-file-size">(${fmtFileSize(file.size)})</span> <span class="dz-replace-hint">Click to replace file →</span>`
+          : `${ICON('upload',15)} <span><b>Click to browse</b> or drag &amp; drop <b>${esc(fileLabel)}</b> (.csv, .xlsx, .xls)</span>`}
+      </div>
     </div>`;
 }
 
@@ -3832,8 +3879,8 @@ function renderImportModal(root){
         <div class="modal-panel">
           <div class="modal-body import-progress">
             <div class="spin"></div>
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${IMPORT.progressText}</div>
-            <div class="muted" style="font-size:11.5px;">Recalculating aging, scoring, reconciliation, and cash forecast from your data.</div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:#ffffff;">${IMPORT.progressText}</div>
+            <div style="font-size:11.5px;color:#94a3b8;">Recalculating aging, scoring, reconciliation, and cash forecast from your data.</div>
           </div>
         </div>
       </div>`;
@@ -3854,21 +3901,21 @@ function renderImportModal(root){
         <div class="modal-head">
           <div>
             <div class="modal-title">Import Data</div>
-            <div class="modal-sub">Sandbox Session — ingest custom invoice/payment files or synchronize from Oracle NetSuite ERP.</div>
+            <div class="modal-sub">Sandbox Session — ingest custom invoice &amp; payment files or synchronize from Oracle NetSuite ERP.</div>
           </div>
           <button class="modal-close" id="modalCloseBtn">${ICON('logOut',15)}</button>
         </div>
         <div class="modal-body">
           <div class="privacy-banner">
             <div class="ico">${ICON('shieldAlert',15)}</div>
-            <div><b style="color:var(--text);">Evaluation Sandbox Isolation:</b> data imported in this session is processed locally within your evaluation environment. No records are shared with third parties or external AI models.</div>
+            <div><b>Evaluation Sandbox Isolation:</b> data imported in this session is processed locally within your evaluation environment. No records are shared with third parties or external AI models.</div>
           </div>
 
-          <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">
-            <button type="button" class="btn-ghost" id="tabFilesBtn" style="padding:6px 14px;font-size:12px;${IMPORT.source!=='netsuite'?'background:var(--primaryDim);color:var(--primary);font-weight:600;border:1px solid var(--primary);':''}">
+          <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid #1e293b;padding-bottom:10px;">
+            <button type="button" class="btn-ghost" id="tabFilesBtn" style="padding:6px 14px;font-size:12px;${IMPORT.source!=='netsuite'?'background:#1e3a8a;color:#ffffff;font-weight:600;border:1px solid #3b82f6;':''}">
               ${ICON('upload',13)} File Upload (.csv, .xlsx)
             </button>
-            <button type="button" class="btn-ghost" id="tabNetSuiteBtn" style="padding:6px 14px;font-size:12px;${IMPORT.source==='netsuite'?'background:var(--primaryDim);color:var(--primary);font-weight:600;border:1px solid var(--primary);':''}">
+            <button type="button" class="btn-ghost" id="tabNetSuiteBtn" style="padding:6px 14px;font-size:12px;${IMPORT.source==='netsuite'?'background:#1e3a8a;color:#ffffff;font-weight:600;border:1px solid #3b82f6;':''}">
               ${ICON('layers',13)} Import from NetSuite
             </button>
           </div>
@@ -3876,45 +3923,45 @@ function renderImportModal(root){
           ${IMPORT.errorMsg ? `<div class="import-error">${ICON('alertTriangle',13)} ${esc(IMPORT.errorMsg)}</div>` : ''}
 
           ${IMPORT.source === 'netsuite' ? `
-            <div style="background:var(--cardAlt);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px;">
+            <div style="background:#0f172a;border:1px solid #233554;border-radius:10px;padding:18px 20px;margin-bottom:14px;">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <div style="font-weight:700;font-size:14px;color:var(--text);">Oracle NetSuite SuiteTalk REST API</div>
+                  <div style="font-weight:700;font-size:14px;color:#ffffff;">Oracle NetSuite SuiteTalk REST API</div>
                   <span class="badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9999px;background:#fef3c7;color:#b45309;">
                     ${erp.verified ? 'Verified' : 'Pending verification'}
                   </span>
                 </div>
-                <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--textMuted);">
+                <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#94a3b8;">
                   ${erp.configured ? 'Configured' : 'Not yet configured'}
                 </span>
               </div>
 
-              <div style="font-size:12px;color:var(--textMuted);line-height:1.6;margin-bottom:14px;">
+              <div style="font-size:12px;color:#94a3b8;line-height:1.6;margin-bottom:14px;">
                 Bi-directional ledger synchronization for bills, credit memos, customer entities, and remittances directly into Recify's deterministic cash engine.
               </div>
 
               ${!erp.configured ? `
-                <div style="background:var(--card);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
-                  <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Required NetSuite Credentials (TBA / OAuth 1.0a):</div>
-                  <ul style="font-size:11.5px;color:var(--textMuted);margin:0 0 10px 18px;padding:0;line-height:1.7;">
+                <div style="background:#070b13;border:1px dashed #233554;border-radius:8px;padding:14px;margin-bottom:14px;">
+                  <div style="font-size:12px;font-weight:600;color:#ffffff;margin-bottom:6px;">Required NetSuite Credentials (TBA / OAuth 1.0a):</div>
+                  <ul style="font-size:11.5px;color:#94a3b8;margin:0 0 10px 18px;padding:0;line-height:1.7;">
                     <li><b>Account ID</b> (e.g. <code>NETSUITE_ACCOUNT_ID</code>)</li>
                     <li><b>Consumer Key &amp; Consumer Secret</b> (from NetSuite Integration Record)</li>
                     <li><b>Token ID &amp; Token Secret</b> (from NetSuite User Access Token)</li>
                   </ul>
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
-                    <span style="font-size:11.5px;color:var(--textMuted);">Credentials can be configured via environment variables or entered in Settings.</span>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid #1e293b;">
+                    <span style="font-size:11.5px;color:#94a3b8;">Credentials can be configured via environment variables or entered in Settings.</span>
                     <button type="button" class="btn-ghost" id="openSettingsForNetSuiteBtn" style="font-size:11.5px;padding:4px 10px;">Configure in Settings →</button>
                   </div>
                 </div>
               ` : `
-                <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
-                  <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;">Configured NetSuite Instance:</div>
-                  <div style="font-size:12px;color:var(--textMuted);">Account ID: <code>${esc(erp.account_id || 'Active')}</code></div>
-                  <div style="font-size:11px;color:#b45309;margin-top:6px;">Note: Integration built, not yet verified with a live account.</div>
+                <div style="background:#070b13;border:1px solid #233554;border-radius:8px;padding:14px;margin-bottom:14px;">
+                  <div style="font-size:12px;font-weight:600;color:#ffffff;margin-bottom:4px;">Configured NetSuite Instance:</div>
+                  <div style="font-size:12px;color:#94a3b8;">Account ID: <code>${esc(erp.account_id || 'Active')}</code></div>
+                  <div style="font-size:11px;color:#f59e0b;margin-top:6px;">Note: Integration built, not yet verified with a live account.</div>
                 </div>
               `}
 
-              <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;margin-top:8px;">
+              <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#64748b;margin-top:8px;">
                 Status: ${erp.verified ? 'Verified live connection.' : 'Not yet verified. NetSuite connector is untested against a live account.'}
               </div>
             </div>
@@ -3924,10 +3971,25 @@ function renderImportModal(root){
               <a class="template-link" href="/api/template/payments" download>${ICON('fileText',14)} Download Payments Template (.csv)</a>
             </div>
 
-            ${dropzoneHtml('dzInvoices', 'Invoices Ledger (.csv, .xlsx)', IMPORT.invoicesFile)}
-            ${dropzoneHtml('dzPayments', 'Payments / Remittance Ledger (.csv, .xlsx)', IMPORT.paymentsFile)}
+            ${dropzoneHtml('dzInvoices', {
+              badge: 'STEP 1 · INVOICE DATA',
+              badgeClass: 'dz-badge-inv',
+              title: 'Invoice Data (Sales & Receivables)',
+              description: 'Upload your sales invoices, billing records, or customer balances (what customers owe you).',
+              expectedColumns: 'Invoice ID / Number, Customer Name, Amount, Due Date (or Issue Date)',
+              fileTypeLabel: 'Invoices File'
+            }, IMPORT.invoicesFile)}
 
-            <div class="modal-note">Required invoice fields: Invoice ID, Customer Name, Amount, Due Date. Required payment fields: Payment ID, Invoice ID, Customer Name, Amount Paid, Payment Date. Ingests CSV (any delimiter: comma, semicolon, tab, pipe) and Excel (.xlsx, multi-sheet auto-detection). Common ERP header variants and regional number/date formats are recognized automatically. If columns cannot be matched with exact confidence, suggestions are presented in the mapping wizard for confirmation — nothing is ever guessed silently.</div>
+            ${dropzoneHtml('dzPayments', {
+              badge: 'STEP 2 · PAYMENT DATA',
+              badgeClass: 'dz-badge-pay',
+              title: 'Payment Data (Cash Receipts & Remittances)',
+              description: 'Upload your customer payments, remittance advice, or bank collections (cash received to settle invoices).',
+              expectedColumns: 'Payment ID / Ref, Invoice ID, Customer Name, Amount Paid, Payment Date',
+              fileTypeLabel: 'Payments File'
+            }, IMPORT.paymentsFile)}
+
+            <div class="modal-note"><b style="color:#e2e8f0;">Formats supported:</b> CSV (comma, semicolon, tab, pipe) &amp; Excel (.xlsx, .xls). Common ERP header variants are automatically detected. If any columns require verification, you will review them in the next step.</div>
           `}
         </div>
         <div class="modal-foot" style="justify-content:space-between;">
